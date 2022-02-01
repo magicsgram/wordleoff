@@ -32,11 +32,11 @@
   <br/><br/>
   <div class="div-center">
     <div class="reset-row" @onclick="NewGame">
-      <div class="guess-tile guess-tile-small guess-correct">R</div>
-      <div class="guess-tile guess-tile-small guess-correct">E</div>
-      <div class="guess-tile guess-tile-small guess-correct">S</div>
-      <div class="guess-tile guess-tile-small guess-correct">E</div>
-      <div class="guess-tile guess-tile-small guess-correct">T</div>
+      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>R</div>
+      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
+      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>S</div>
+      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
+      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>T</div>
     </div>
   </div>
 </div>
@@ -56,6 +56,8 @@
   private Boolean sessionInitialized = false;
   private HashSet<String> fullWords = new();
   private String? correctAnswer;
+
+  private String resetButtonClass = "";
   private Dictionary<String, PlayerData> playerDataDictionary = new();
 
   protected override async Task OnInitializedAsync()
@@ -102,6 +104,7 @@
         playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
         UpdateCanSubmitNewGuess();
       }
+      UpdateResetButtonClass();
       StateHasChanged();
     });
   }
@@ -190,6 +193,21 @@
   public Boolean IsConnected => hubConnection?.State == HubConnectionState.Connected;
 
   public Boolean IsGameInProgress => playerDataDictionary.Any(x => x.Value.PlayData.Count > 0);
+
+  public void UpdateResetButtonClass()
+  {
+    if (correctAnswer is not null)
+    {
+      if (playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer)))
+        resetButtonClass = "guess-correct";
+      else if (playerDataDictionary.Values.All(x => x.PlayData.Count == 0))
+        resetButtonClass = "guess-absent";
+      else
+        resetButtonClass = "guess-present";          
+    }
+    else
+      resetButtonClass = "";
+  }
 
   public void UpdateCanSubmitNewGuess() // Check if anyone's lagging behind me
   {

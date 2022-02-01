@@ -11,6 +11,7 @@ td, th {
 
 .game {
   outline: none;
+  height: 90vh;
 }
 
 .play-container {
