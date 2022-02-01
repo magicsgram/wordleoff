@@ -4,38 +4,52 @@
 @using System.Text
 @using WordleOff.Shared
 @inject NavigationManager NavigationManager
+@inject IJSRuntime jsRuntime
 @implements IAsyncDisposable
 
-<div>
-  Player Name (Cannot update once the game begins):
+<div style=@($"display: {(sessionInitialized ? "none" : "")}")>
+  Your Name:
   <input @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="20"/>
-  <button @onclick="UpdatePlayerName" disabled="@(!IsConnected || IsGameInProgress)">Update</button>
+  <button @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
+  <div>
+    @joinErrorMessage
+  </div>
 </div>
-<br/>
-<div>
-  @RenderPlayerDataTable!((playerName, currentAnswer!, playerDataDictionary))
-</div>
-<br/>
-<div>
-  <input @bind="guess" maxlength="5" disabled="@(!IsConnected || !CanSubmitNewGuess)"/>
-  <button @onclick="SubmitGuess" disabled="@(!IsConnected || !CanSubmitNewGuess)">Submit Guess</button>
+<div
+  style=@($"display: {(sessionInitialized ? "" : "none")};")
+  class="game"
+  @onkeydown="@KeyDown"
+  tabindex="0"
+>
+  <div>
+    @RenderPlayerDataTable!((playerName, guess, correctAnswer!, playerDataDictionary))
+  </div>
   <br/>
-  @submitError
-  @holdMessage
+  <div class="div-center">
+    @submitError
+    @holdMessage
+  </div>
+  <br/><br/>
+  <div class="div-center">
+    <button @onclick="NewGame">Reset</button>
+  </div>
 </div>
+
 
 @code {
   [Parameter]
   public String SessionId { get; set; } = "";
 
-  private String? playerName;
-  private Boolean playerNameAssignedByServerOnce = false;
+  private String playerName = "";
+  private String joinErrorMessage = "";
   private String guess = "";
   private String submitError = "";
-  private String holdMessage = "";
+    private String holdMessage = "";
   private HubConnection? hubConnection;
+  private Boolean canSubmitNewGuess;
+  private Boolean sessionInitialized = false;
   private HashSet<String> fullWords = new();
-  private String? currentAnswer;
+  private String? correctAnswer;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
 
   protected override async Task OnInitializedAsync()
@@ -47,10 +61,10 @@
 
     hubConnection.On<Byte[]>("ServerFullWordsCompressed", async (compressedFullWordsBytes) => await StoreFullWords(compressedFullWordsBytes));
     hubConnection.On<Dictionary<String, PlayerData>>("ServerPlayerData", async (newPlayerDataDictionary) => await UpdatePlayerData(newPlayerDataDictionary));
-    hubConnection.On<String>("ServerCurrentAnswer", (currentAnswer) => UpdateCurrentAnswer(currentAnswer));
-
+    hubConnection.On<String>("ServerCurrentAnswer", (correctAnswer) => UpdateCurrentAnswer(correctAnswer));
+    hubConnection.On<String>("ServerJoinFail", (message) => DisplayJoinFailMessage(message));
+    
     await hubConnection.StartAsync();
-    await ConnectNew();
   }
 
   #region Received from Server
@@ -75,25 +89,33 @@
   {
     await Task.Run(()=>
     {
+      sessionInitialized = true;
       playerDataDictionary = newPlayerDataDictionary;
-      if (hubConnection is not null && !playerNameAssignedByServerOnce)
+      if (hubConnection is not null)
       {
         playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
-        playerNameAssignedByServerOnce = true;
+        UpdateCanSubmitNewGuess();
       }
       StateHasChanged();
     });
   }
+
+  public void DisplayJoinFailMessage(String message) => joinErrorMessage = message;
 
   #endregion
 
 
   #region Send to Server
 
-  public async Task ConnectNew()
+  public async Task JoinSession()
   {
+    if (playerName.Length == 0)
+    {
+      joinErrorMessage = "You name cannot be empty!";
+      return;
+    }
     if (hubConnection is not null)
-      await hubConnection.SendAsync("ClientConnectNew", SessionId);
+      await hubConnection.SendAsync("ClientConnectNew", SessionId, playerName);
   }
 
   public async Task UpdatePlayerName()
@@ -104,11 +126,11 @@
 
   public async Task SubmitGuess()
   {
-    if (hubConnection is not null && currentAnswer is not null)
+    if (hubConnection is not null && correctAnswer is not null)
     {
-      if (guess.Length != currentAnswer!.Length)
+      if (guess.Length != correctAnswer!.Length)
       {
-        submitError = $"Guess a {currentAnswer.Length}-letter word";
+        submitError = $"Guess a {correctAnswer.Length}-letter word";
         return;
       }
       else if (!fullWords.Contains(guess.ToLower()))
@@ -116,7 +138,8 @@
         submitError = "Not a word!";
         return;
       }
-      await hubConnection.SendAsync("ClientSubmitGuess", playerName, guess.ToLower());
+      if (canSubmitNewGuess)
+        await hubConnection.SendAsync("ClientSubmitGuess", playerName, guess.ToLower());
       guess = "";
       submitError = "";
     }
@@ -124,59 +147,83 @@
 
   public async Task Reconnect()
   {
-    if (hubConnection is not null && playerName is not null)
+    if (hubConnection is not null)
       await hubConnection.SendAsync("ClientReconnect", SessionId, playerName);
   }
 
-  public void UpdateCurrentAnswer(String currentAnswer) => this.currentAnswer = currentAnswer;
+  public void UpdateCurrentAnswer(String correctAnswer) => this.correctAnswer = correctAnswer;
 
   #endregion
 
 
   #region Other Client Code
 
+  public async Task KeyDown(KeyboardEventArgs e)
+  {
+    PlayerData playerData = playerDataDictionary[playerName];
+    if (correctAnswer is not null && playerData.PlayData.Count < 6 && !playerData.AnswerGuessCorrectly(correctAnswer) && canSubmitNewGuess)
+    {
+      if (e.Key == "Backspace" && guess.Length > 0)
+      {
+        guess = guess.Remove(guess.Length - 1);
+      }
+      else if (e.Key == "Enter")
+      {
+        if (guess.Length == correctAnswer.Length)
+          await SubmitGuess();
+      }
+      else if (e.Key.Length == 1)
+      {
+        Char key = e.Key.ToLower()[0];
+        if ('a' <= key && key <= 'z' && guess.Length < correctAnswer.Length)
+          guess += key;
+      }
+    }
+  }
+
   public Boolean IsConnected => hubConnection?.State == HubConnectionState.Connected;
 
   public Boolean IsGameInProgress => playerDataDictionary.Any(x => x.Value.PlayData.Count > 0);
 
-  public Boolean CanSubmitNewGuess // Check if anyone's lagging behind me
+  public void UpdateCanSubmitNewGuess() // Check if anyone's lagging behind me
   {
-    get
-    { 
-      Boolean behindOthers = false;
-      Boolean alreadyGuessedCorrectly = false;
-      Boolean guessLimitReached = false;
-      Boolean keyExist = false;
-      if (playerName is not null)
+    Boolean behindOthers = false;
+    Boolean alreadyGuessedCorrectly = false;
+    Boolean guessLimitReached = false;
+    Boolean keyExist = false;
+
+    keyExist = playerDataDictionary.ContainsKey(playerName);
+    if (keyExist && correctAnswer is not null)
+    {
+      if (playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer))
+        alreadyGuessedCorrectly = true;
+
+      Int32 myGuessCount = playerDataDictionary[playerName].PlayData.Count;
+      behindOthers = playerDataDictionary.Values.All((x) =>
       {
-        keyExist = playerDataDictionary.ContainsKey(playerName);
-        if (keyExist && currentAnswer is not null)
-        {
-          if (playerDataDictionary[playerName].AnswerGuessCorrectly(currentAnswer))
-            alreadyGuessedCorrectly = true;
+        return x.AnswerGuessCorrectly(correctAnswer)
+                || x.PlayData.Count >= myGuessCount;
+      });
+      guessLimitReached = playerDataDictionary[playerName].PlayData.Count == 6;
+    }        
 
-          Int32 myGuessCount = playerDataDictionary[playerName].PlayData.Count;
-          behindOthers = playerDataDictionary.Values.All((x) =>
-          {
-            return x.AnswerGuessCorrectly(currentAnswer)
-                    || x.PlayData.Count >= myGuessCount;
-          });
-          guessLimitReached = playerDataDictionary[playerName].PlayData.Count == 6;
-        }        
-      }
-      else
-        behindOthers = false;
+    if (!behindOthers && keyExist)
+      holdMessage = "Wait until everyone submit their guesses.";
+    else if (alreadyGuessedCorrectly)
+      holdMessage = "Correct!! Now you can see everyone else's guesses.";
+    else if (!alreadyGuessedCorrectly && guessLimitReached)
+      holdMessage = $"The answer is {correctAnswer?.ToUpper() ?? ""}";
+    else
+      holdMessage = "";
+    canSubmitNewGuess = behindOthers && !alreadyGuessedCorrectly && !guessLimitReached;
+  }
 
-      if (!behindOthers && keyExist)
-        holdMessage = "Wait until all players have submitted their guesses.";
-      else if (alreadyGuessedCorrectly)
-        holdMessage = "Correct!!";
-      else if (!alreadyGuessedCorrectly && guessLimitReached)
-        holdMessage = $"The correct answer is ${currentAnswer?.ToUpper() ?? ""}";
-      else
-        holdMessage = "";
-      return behindOthers && !alreadyGuessedCorrectly && !guessLimitReached;
-    }
+  private async Task NewGame()
+  {
+    if (!await jsRuntime.InvokeAsync<Boolean>("confirm", "Do you want to start a new game? This will reset everyone's progress"))
+      return;
+    if (hubConnection is not null)
+      await hubConnection.SendAsync("ClientResetCurrentSession", SessionId);
   }
 
   private async Task OnClosed(Exception? e)
@@ -199,16 +246,17 @@
 
   #region RenderFragments
 
-  private static RenderFragment<(String PlayerName, String CurrentAnswer, Dictionary<String, PlayerData> PlayerDataDictionary)> RenderPlayerDataTable = data => __builder =>
+  private static RenderFragment<(String PlayerName, String Guess, String CorrectAnswer, Dictionary<String, PlayerData> PlayerDataDictionary)> RenderPlayerDataTable = data => __builder =>
   {
     String playerName = data.PlayerName;
-    String currentAnswer = data.CurrentAnswer;
+    String guess = data.Guess;
+    String correctAnswer = data.CorrectAnswer;
     Dictionary<String, PlayerData> playerDataDictionary = data.PlayerDataDictionary;
     if (playerDataDictionary.Count == 0)
       return;
     Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
-    Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(currentAnswer));
-    Boolean godMode = playerDataDictionary.ContainsKey(playerName) ? playerDataDictionary[playerName].AnswerGuessCorrectly(currentAnswer) && allPlayersAtMaxGuesses: false;
+    Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
+    Boolean godMode = playerDataDictionary.ContainsKey(playerName) ? playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer) && allPlayersAtMaxGuesses: false;
 
     Int32 maxIndex = playerDataDictionary.Count == 0 ? -1 : playerDataDictionary.Max(x => x.Value.Index);
     List<KeyValuePair<String, PlayerData>?> orderedList = new();
@@ -220,74 +268,75 @@
     }
     <table>
       <tr>
-        @for(Int32 i = 0; i < orderedList.Count; ++i)
+        @for (Int32 i = 0; i < orderedList.Count; ++i)
         {
           var pairValue = orderedList[i]!.Value;
           var currentPlayerName = pairValue.Key;
           var currentPlayerData = pairValue.Value;
-          var youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
-          <th>@($"{currentPlayerName}{youIndicator}")</th>
-        }
-      </tr>
-      <tr>
-        @for (Int32 i = 0; i < orderedList.Count; ++i)
-        {
-          @if (orderedList[i] is not null)
-          {
-            var pairValue = orderedList[i]!.Value;
-            var currentPlayerName = pairValue.Key;
-            var currentPlayerData = pairValue.Value;
-            <td>
-              <div class="play-container">
-                <div class="guess-board">
-                  @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
-                  {
-                    String guess = currentPlayerData.PlayData[j];
-                    @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
-                      @RenderTempGuessRow!((playerName, currentPlayerName, guess))
-                    else
-                      @RenderGuessRow!((currentAnswer, guess, playerName != currentPlayerName && !godMode))
-                  }
-                </div>
-              </div>              
-            </td>
-          }
+          Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
+          Int32 emptyRowOffset = 0;
+          if (isCurrentPlayerLocal)
+            emptyRowOffset = 1;
+          String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
+          <td>
+            <div class="play-container">
+              <div>@($"{currentPlayerName}{youIndicator}")</div>
+              <div class="guess-board">
+                @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
+                {
+                  String currentGuess = currentPlayerData.PlayData[j];
+                  @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
+                    @RenderTempGuessRow!((playerName, currentPlayerName, currentGuess))
+                  else
+                    @RenderGuessRow!((correctAnswer, currentGuess, !isCurrentPlayerLocal && !godMode))
+                }
+                @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
+                {
+                  @RenderGuessingRow!((correctAnswer, guess))
+                }
+                @for (Int32 j = currentPlayerData.PlayData.Count + emptyRowOffset; j < 6; ++j)
+                {
+                  @RenderEmptyRow!(correctAnswer)
+                }
+              </div>
+            </div>              
+          </td>
         }
       </tr>
     </table>
   };
 
-  private static RenderFragment<(String CurrentAnswer, String Guess, Boolean HideLetters)> RenderGuessRow = data => __builder =>
+  private static RenderFragment<(String CorrectAnswer, String Guess, Boolean HideLetters)> RenderGuessRow = data => __builder =>
   {
-    String currentAnswer = data.CurrentAnswer;
+    String correctAnswer = data.CorrectAnswer;
     String guess = data.Guess;
     Boolean hideLetters = data.HideLetters;
     
     StringBuilder sb = new StringBuilder();
     Dictionary<Char, Int32> letterCountInAnswer = new();
-    for (Int32 i = 0; i < currentAnswer.Length; ++i)
+    for (Int32 i = 0; i < correctAnswer.Length; ++i)
     {
       sb.Append('0');
-      if (letterCountInAnswer.ContainsKey(currentAnswer[i]))
-        ++letterCountInAnswer[currentAnswer[i]];
+      if (letterCountInAnswer.ContainsKey(correctAnswer[i]))
+        ++letterCountInAnswer[correctAnswer[i]];
       else
-        letterCountInAnswer.Add(currentAnswer[i], 1);
+        letterCountInAnswer.Add(correctAnswer[i], 1);
     }
     Char[] backgroundColors = sb.ToString().ToCharArray();
-    for (Int32 i = 0; i < currentAnswer.Length; ++i)
-      if (guess[i] == currentAnswer[i])
+    for (Int32 i = 0; i < correctAnswer.Length; ++i)
+      if (guess[i] == correctAnswer[i])
       {
         backgroundColors[i] = '2';
         --letterCountInAnswer[guess[i]];
       }
-    for (Int32 i = 0; i < currentAnswer.Length; ++i)
-      if (currentAnswer.Contains(guess[i]) && letterCountInAnswer[guess[i]] > 0)
+    for (Int32 i = 0; i < correctAnswer.Length; ++i)
+      if (correctAnswer.Contains(guess[i]) && letterCountInAnswer[guess[i]] > 0)
       {
         backgroundColors[i] = '1';
         --letterCountInAnswer[guess[i]];
       }
     <div class="guess-row">
-      @for (Int32 i = 0; i < currentAnswer.Length; ++i)
+      @for (Int32 i = 0; i < correctAnswer.Length; ++i)
       {
         Char displayChar = hideLetters ? '?' : guess[i];
         String backgroundColorCSS = "";
@@ -314,25 +363,48 @@
     String currentPlayerName = data.CurrentPlayerName;
     String guess = data.Guess;
 
-    @if (playerName == currentPlayerName)
-    {
-      <div class="guess-my-guess-row">
+    <div class="guess-row">
+      @if (playerName == currentPlayerName)
+      {
         @for (Int32 k = 0; k < guess.Length; ++k)
         {
           <div class="guess-tile guess-guessing">@guess[k]</div>
         }
-        <div class="guess-tile guess-guessing">?</div>
-      </div>
-    }
-    else
-    {
-      <div class="guess-row">
+      }
+      else
+      {
         @for (Int32 k = 0; k < guess.Length; ++k)
         {
           <div class="guess-tile guess-guessing">?</div>
         }
-      </div>
-    }
+      }
+    </div>
+  };
+
+  private static RenderFragment<String> RenderEmptyRow = correctAnswer => __builder =>
+  {
+    <div class="guess-row">
+      @for (Int32 k = 0; k < correctAnswer.Length; ++k)
+      {
+        <div class="guess-tile guess-empty"></div>
+      }
+    </div>
+  };
+
+  private static RenderFragment<(String CorrectAnswer, String Guess)> RenderGuessingRow = data => __builder =>
+  {
+    String correctAnswer = data.CorrectAnswer;
+    String guess = data.Guess;
+    <div class="guess-row">
+      @for (Int32 i = 0; i < guess.Length; ++i)
+      {
+        <div class=@($"guess-tile guess-guessing")>@guess[i]</div>
+      }
+      @for (Int32 i = guess.Length; i < correctAnswer.Length; ++i)
+      {
+        <div class="guess-tile guess-empty"></div>
+      }
+    </div>
   };
 
   #endregion

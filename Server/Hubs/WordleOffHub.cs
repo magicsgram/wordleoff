@@ -15,6 +15,7 @@ public class WordleOffHub : Hub
   private static IHubCallerClients? latestClients;
 
   private static Timer removeDisconnectedPlayersTimer = new(RemoveDisconnectedPlayers, null, 1000, 1000);
+  private static Timer removeExpiredSessionsTimer = new(RemoveExpiredSessions, null, 10000, 10000);
 
   public WordleOffHub() : base()
   {
@@ -48,9 +49,11 @@ public class WordleOffHub : Hub
       return;
     }
     gameSessions[sessionId].ResetGame(WordsService.NextRandomAnswer());
+    await SendCurrentAnswer(sessionId);
+    await SendFullGameState(sessionId);
   }
 
-  public async Task ClientConnectNew(String sessionId)
+  public async Task ClientConnectNew(String sessionId, String newPlayerName)
   {
     if (!gameSessions.ContainsKey(sessionId))
     {
@@ -58,7 +61,7 @@ public class WordleOffHub : Hub
       return;
     }
 
-    var result = gameSessions[sessionId].AddPlayer(Context.ConnectionId);
+    var result = gameSessions[sessionId].AddPlayer(Context.ConnectionId, newPlayerName);
     switch (result)
     {
       case AddPlayerResult.Success:
@@ -67,6 +70,15 @@ public class WordleOffHub : Hub
         await SendFullWordsCompressed();
         await SendCurrentAnswer(sessionId, false);
         await SendFullGameState(sessionId);
+        break;
+      case AddPlayerResult.PlayerNameExist:
+        await SendJoinError("The name's taken!");
+        break;
+      case AddPlayerResult.PlayerMaxed:
+        await SendJoinError("The session is full. Try again later.");
+        break;
+      case AddPlayerResult.GameAlreadyStarted:
+        await SendJoinError("The session has already begun. Try again later.");
         break;
       default:
         // TODO: Send an error message
@@ -78,7 +90,7 @@ public class WordleOffHub : Hub
   {
     if (!gameSessions.ContainsKey(sessionId))
     {
-      await Clients.Caller.SendAsync("GameSessionNotFound");
+      await SendJoinError("The session does not exist.");
       return;
     }
     await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
@@ -133,6 +145,8 @@ public class WordleOffHub : Hub
       await Clients.Caller.SendAsync("ServerPlayerData", gameSessions[sessionId].PlayerDataDictionary);    
   }
 
+  public async Task SendJoinError(String message) => await Clients.Caller.SendAsync("ServerJoinFail", message);
+
   #endregion
 
 
@@ -168,6 +182,13 @@ public class WordleOffHub : Hub
             await newHub.SendFullGameState(gameSession.SessionId);
           }            
     });
+  }
+
+  public static void RemoveExpiredSessions(Object? state)
+  {
+    var expiredSessions = gameSessions.Where(x => x.Value.SessionExpired);
+    foreach (var pair in expiredSessions)
+      gameSessions.Remove(pair.Key);
   }
 
   public async override Task OnDisconnectedAsync(Exception? exception)

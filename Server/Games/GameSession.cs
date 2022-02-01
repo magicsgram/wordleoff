@@ -22,7 +22,7 @@ public class GameSession
   private static Random random = new();
 
   public const Int32 MaxPlayers = 4;
-  public const Int32 GameSessionExpireMinutes = 5;
+  public const Int32 GameSessionExpireMinutes = 1;
   public const Int32 ConnectionExpireSeconds = 5;
 
   private DateTime? noPlayerSince = DateTime.Now;
@@ -30,6 +30,16 @@ public class GameSession
   public String SessionId { get; set; } = "";
   public String CurrentAnswer { get; set; } = "";
   public Dictionary<String, PlayerData> PlayerDataDictionary { get; set; } = new();
+
+  public Boolean SessionExpired
+  {
+    get
+    {
+      DateTime now = DateTime.Now;
+      TimeSpan noPlayerTimeSpan = now - (noPlayerSince ?? now);
+      return TimeSpan.FromMinutes(GameSessionExpireMinutes) < noPlayerTimeSpan;
+    }
+  }
 
   public GameSession(String sessionId, String newAnswer)
   {
@@ -44,18 +54,17 @@ public class GameSession
       pair.Value.PlayData.Clear();
   }
 
-  public AddPlayerResult AddPlayer(String connectionId)
+  public AddPlayerResult AddPlayer(String connectionId, String newPlayerName)
   {
-    String newPlayerName = GetRandomPlayerName();
     if (PlayerDataDictionary.Count == MaxPlayers)
       return AddPlayerResult.PlayerMaxed;
+
+    if (PlayerDataDictionary.Any(pair => pair.Value.PlayData.Count > 0))
+      return AddPlayerResult.GameAlreadyStarted;
 
     if (PlayerDataDictionary.ContainsKey(newPlayerName))
       return AddPlayerResult.PlayerNameExist;
     
-    if (PlayerDataDictionary.Any(pair => pair.Value.PlayData.Count > 0))
-      return AddPlayerResult.GameAlreadyStarted;
-
     Int32 maxIndex = PlayerDataDictionary.Count == 0 ? 0 : PlayerDataDictionary.Values.Max(x => x.Index);
 
     PlayerDataDictionary.Add(
@@ -102,24 +111,9 @@ public class GameSession
 
     foreach(String playerName in playerNamesToRemove)
       PlayerDataDictionary.Remove(playerName);
+    if (PlayerDataDictionary.Count == 0 && playerNamesToRemove.Count > 0)
+      noPlayerSince = now;
     return playerNamesToRemove.Count > 0;
-  }
-  
-  public Boolean SessionExpired()
-  {
-    DateTime now = DateTime.Now;
-    TimeSpan noPlayerTimeSpan = now - (noPlayerSince ?? now);
-    return TimeSpan.FromMinutes(GameSessionExpireMinutes) < noPlayerTimeSpan;
-  }
-
-  public String GetRandomPlayerName()
-  {
-    String newPlayerName = "";
-    do 
-    {
-      newPlayerName = $"Player#{random.Next(100, 999).ToString("000")}";
-    } while(PlayerDataDictionary.ContainsKey(newPlayerName));
-    return newPlayerName;
   }
 
   public EnterWordResult EnterGuess(String playerName, String word)

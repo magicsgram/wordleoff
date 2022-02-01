@@ -5,13 +5,16 @@ table {
 }
 
 td, th {
-  border: 0px solid #dddddd;
   text-align: center;
   padding: 8px;
 }
 
+.game {
+  outline: none;
+}
+
 .play-container {
-  display: flex;
+  display: inline-block;
   align-content: center;
   justify-content: center;
   flex-grow: 1;
@@ -28,13 +31,6 @@ td, th {
 .guess-row {
   display: grid;
   grid-template-columns: repeat(5, 1.5fr);
-  grid-gap: 4px;
-  height: 50px;
-}
-
-.guess-my-guess-row {
-  display: grid;
-  grid-template-columns: repeat(6, 1.5fr);
   grid-gap: 4px;
   height: 50px;
 }
@@ -74,4 +70,14 @@ td, th {
 
 .guess-guessing {
   --tile-color: #adadad;
+}
+
+.guess-empty {
+  border: 1px solid #dddddd;
+}
+
+.div-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
