@@ -1,0 +1,12 @@
+Client/bin/
+Client/obj/
+Server/bin/
+Server/obj/
+Shared/bin/
+Shared/obj/
+words-all.txt
+words-wordle.txt
+server-url.txt
+single_file.tar.xz
+webpublish/
+.vs/

@@ -1,0 +1,77 @@
+table {
+  font-family: arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+}
+
+td, th {
+  border: 1px solid #dddddd;
+  text-align: center;
+  padding: 8px;
+}
+
+.play-container {
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  flex-grow: 1;
+}
+
+.guess-board {
+  width: 350px;
+  height: 450px;
+  display: grid;
+  grid-template-rows: repeat(6, 1.5fr);
+  grid-gap: 4px;
+}
+
+.guess-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1.5fr);
+  grid-gap: 4px;
+  height: 50px;
+}
+
+.guess-my-guess-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1.5fr);
+  grid-gap: 4px;
+  height: 50px;
+}
+
+.guess-tile {
+  width: 100%;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3rem;
+  line-height: 3rem;
+  font-weight: bold;
+  color: #d7dadc;
+  vertical-align: middle;
+  box-sizing: border-box;
+  text-transform: uppercase;
+  background-color: var(--tile-color);
+}
+ 
+.guess-tile::before {
+  content: '';
+  display: inline-block;
+  padding-bottom: 100%;
+}
+
+.guess-present {
+  --tile-color: #b59f3b;
+}
+
+.guess-correct {
+  --tile-color: #538d4e;
+}
+
+.guess-absent {
+  --tile-color: #3a3a3c;
+}
+
+.guess-guessing {
+  --tile-color: #adadad;
+}

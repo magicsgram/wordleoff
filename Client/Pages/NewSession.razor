@@ -1,0 +1,42 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager NavigationManager
+@implements IAsyncDisposable
+
+<p><button @onclick="CreateNewGame" disabled="@(!IsConnected)">Create a new game</button></p>
+
+@code {
+  private HubConnection? hubConnection;
+  
+  protected override async Task OnInitializedAsync()
+  {
+    hubConnection = new HubConnectionBuilder()
+      .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
+      .Build();
+    hubConnection.Closed += async (e) => await OnClosed(e);
+    hubConnection.On<String>("NewSessionCreated", (newSessionId) => NavigationManager.NavigateTo($"game/{newSessionId}"));
+
+    await hubConnection.StartAsync();
+  }
+
+  public Boolean IsConnected => hubConnection?.State == HubConnectionState.Connected;
+  private async Task OnClosed(Exception? e)
+  {
+    if (hubConnection is not null)
+      await hubConnection.StartAsync();
+  }
+
+  private async Task CreateNewGame()
+  {
+    if (hubConnection is not null)
+      await hubConnection.SendAsync("ClientCreateNewSession");
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    if (hubConnection is not null)
+    {
+      await hubConnection.DisposeAsync();
+    }
+  }
+}
