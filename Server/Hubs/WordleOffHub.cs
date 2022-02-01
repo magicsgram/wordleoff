@@ -48,7 +48,7 @@ public class WordleOffHub : Hub
       await Clients.Caller.SendAsync("GameSessionNotFound");
       return;
     }
-    gameSessions[sessionId].ResetGame(WordsService.NextRandomAnswer());
+    gameSessions[sessionId].ResetGame();
     await SendCurrentAnswer(sessionId);
     await SendFullGameState(sessionId);
   }
@@ -162,7 +162,7 @@ public class WordleOffHub : Hub
         segments.Add(random.Next(100, 999).ToString("000"));
       newSessionId = String.Join("-", segments);
     } while (gameSessions.ContainsKey(newSessionId));
-    gameSessions.Add(newSessionId, new GameSession(newSessionId, WordsService.NextRandomAnswer()));
+    gameSessions.Add(newSessionId, new GameSession(newSessionId));
     
     // newSessionId = "111-111-111";
     // gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));

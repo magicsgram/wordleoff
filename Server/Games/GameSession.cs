@@ -21,16 +21,17 @@ public class GameSession
 {
   private static Random random = new();
 
-  public const Int32 MaxPlayers = 4;
-  public const Int32 GameSessionExpireMinutes = 1;
-  public const Int32 ConnectionExpireSeconds = 5;
+  private const Int32 MaxPlayers = 4;
+  private const Int32 GameSessionExpireMinutes = 1;
+  private const Int32 ConnectionExpireSeconds = 5;
+  private const Int32 PastAnswersMaxSize = 100;
 
   private DateTime? noPlayerSince = DateTime.Now;
 
   public String SessionId { get; set; } = "";
-  public String CurrentAnswer { get; set; } = "";
+  public String CurrentAnswer { get { return pastAnswers.Last(); } }
   public Dictionary<String, PlayerData> PlayerDataDictionary { get; set; } = new();
-
+  private Queue<String> pastAnswers = new();
   public Boolean SessionExpired
   {
     get
@@ -40,16 +41,25 @@ public class GameSession
       return TimeSpan.FromMinutes(GameSessionExpireMinutes) < noPlayerTimeSpan;
     }
   }
+  
 
-  public GameSession(String sessionId, String newAnswer)
+  public GameSession(String sessionId)
   {
     SessionId = sessionId;
-    CurrentAnswer = newAnswer;
+    pastAnswers.Enqueue(WordsService.NextRandomAnswer());
   }
 
-  public void ResetGame(String newAnswer)
+  public void ResetGame()
   {
-    CurrentAnswer = newAnswer;
+    String newAnswer = "";
+    do
+    {
+      newAnswer = WordsService.NextRandomAnswer();
+    } while (pastAnswers.Contains(newAnswer));
+    pastAnswers.Enqueue(newAnswer);
+    while (pastAnswers.Count > PastAnswersMaxSize)
+      pastAnswers.Dequeue();
+
     foreach (var pair in PlayerDataDictionary)
       pair.Value.PlayData.Clear();
   }
