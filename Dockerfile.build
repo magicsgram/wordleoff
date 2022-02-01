@@ -1,6 +1,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:6.0
 WORKDIR /app
-COPY WordleOff.Server.csproj WordleOff.Server.csproj
-RUN dotnet restore WordleOff.Server.csproj
+COPY Server/WordleOff.Server.csproj Server/WordleOff.Server.csproj
+RUN dotnet restore Server/WordleOff.Server.csproj
 COPY . .
 RUN dotnet publish -c Release -r linux-x64 --self-contained=true -p:IncludeAllContentForSelfExtract=true -p:PublishTrimmed=true -o /output
