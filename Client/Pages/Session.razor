@@ -225,7 +225,8 @@
           var pairValue = orderedList[i]!.Value;
           var currentPlayerName = pairValue.Key;
           var currentPlayerData = pairValue.Value;
-          <th>@($"{currentPlayerName}")</th>
+          var youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
+          <th>@($"{currentPlayerName}{youIndicator}")</th>
         }
       </tr>
       <tr>
@@ -243,35 +244,13 @@
                   {
                     String guess = currentPlayerData.PlayData[j];
                     @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
-                      @if (playerName == currentPlayerName)
-                      {
-                        <div class="guess-my-guess-row">
-                          @for (Int32 k = 0; k < guess.Length; ++k)
-                          {
-                            <div class="guess-tile guess-guessing">@guess[k]</div>
-                          }
-                          <div class="guess-tile guess-guessing">?</div>
-                        </div>
-                      }
-                      else
-                      {
-                        <div class="guess-row">
-                          @for (Int32 k = 0; k < guess.Length; ++k)
-                          {
-                            <div class="guess-tile guess-guessing">?</div>
-                          }
-                        </div>
-                      }
+                      @RenderTempGuessRow!((playerName, currentPlayerName, guess))
                     else
                       @RenderGuessRow!((currentAnswer, guess, playerName != currentPlayerName && !godMode))
                   }
                 </div>
               </div>              
             </td>
-          }
-          else
-          {
-            <td>No Data</td>
           }
         }
       </tr>
@@ -327,6 +306,33 @@
         <div class=@($"guess-tile {backgroundColorCSS}")>@displayChar</div>
       }
     </div>
+  };
+
+  private static RenderFragment<(String PlayerName, String CurrentPlayerName, String Guess)> RenderTempGuessRow = data => __builder =>
+  {
+    String playerName = data.PlayerName;
+    String currentPlayerName = data.CurrentPlayerName;
+    String guess = data.Guess;
+
+    @if (playerName == currentPlayerName)
+    {
+      <div class="guess-my-guess-row">
+        @for (Int32 k = 0; k < guess.Length; ++k)
+        {
+          <div class="guess-tile guess-guessing">@guess[k]</div>
+        }
+        <div class="guess-tile guess-guessing">?</div>
+      </div>
+    }
+    else
+    {
+      <div class="guess-row">
+        @for (Int32 k = 0; k < guess.Length; ++k)
+        {
+          <div class="guess-tile guess-guessing">?</div>
+        }
+      </div>
+    }
   };
 
   #endregion
