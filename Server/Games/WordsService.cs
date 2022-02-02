@@ -48,7 +48,7 @@ public class WordsService
     
     // Load answers
     DirectoryInfo answersDirectoryInfo = Directory.GetParent(".") ?? throw new Exception("Parent Directory Not Found");
-    String answersPath = Path.Combine(answersDirectoryInfo.FullName, "words-all.txt");
+    String answersPath = Path.Combine(answersDirectoryInfo.FullName, "words-wordle.txt");
     StreamReader answersStreamReader = new(answersPath);
     while (!answersStreamReader.EndOfStream)
     {
