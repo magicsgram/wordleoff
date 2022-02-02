@@ -46,8 +46,7 @@ public class GameSession
   public GameSession(String sessionId)
   {
     SessionId = sessionId;
-    //pastAnswers.Enqueue(WordsService.NextRandomAnswer());
-    pastAnswers.Enqueue("slaps");
+    pastAnswers.Enqueue(WordsService.NextRandomAnswer());
   }
 
   public void ResetGame()
