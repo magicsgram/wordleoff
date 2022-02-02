@@ -51,6 +51,10 @@
   private String searchSessionMessage = "Searching....";
   private HubConnection? hubConnection;
   private Boolean canSubmitNewGuess;
+  private Boolean behindOthers = false;
+  private Boolean alreadyGuessedCorrectly = false;
+  private Boolean guessLimitReached = false;
+  private Boolean gameOver = false;
   private Boolean sessionInitialized = false;
   private Boolean sessionFound = false;
   private HashSet<String> fullWords = new();
@@ -232,9 +236,9 @@
 
   public void UpdateCanSubmitNewGuess() // Check if anyone's lagging behind me
   {
-    Boolean behindOthers = false;
-    Boolean alreadyGuessedCorrectly = false;
-    Boolean guessLimitReached = false;
+    behindOthers = false;
+    alreadyGuessedCorrectly = false;
+    guessLimitReached = false;
     Boolean keyExist = false;
 
     keyExist = playerDataDictionary.ContainsKey(playerName);
@@ -261,6 +265,8 @@
     else
       holdMessage = "ㅤ";
     canSubmitNewGuess = behindOthers && !alreadyGuessedCorrectly && !guessLimitReached;
+    if (correctAnswer is not null)
+      gameOver = playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer));
   }
 
   private async Task NewGame()
@@ -526,12 +532,15 @@
         Dictionary<Char, Int32> letterTileValues = new();
         for (Char c = 'a'; c <= 'z'; ++c)
           letterTileValues.Add(c, -1);
-        foreach (String play in playData)
+        Boolean excludeLast = !canSubmitNewGuess && !alreadyGuessedCorrectly && !gameOver;
+        Int32 playDataLimit = playData.Count - (excludeLast ? 1 : 0);
+        for (Int32 i = 0; i < playDataLimit; ++i)
         {
-          for (Int32 i = 0; i < play.Length; ++i)
+          String play = playData[i];
+          for (Int32 j = 0; j < play.Length; ++j)
           {
-            Char c = play[i];
-            if (correctAnswer[i] == c)
+            Char c = play[j];
+            if (correctAnswer[j] == c)
               letterTileValues[c] = 2;
             else if (correctAnswer.Contains(c) && letterTileValues[c] < 2)
               letterTileValues[c] = 1;
