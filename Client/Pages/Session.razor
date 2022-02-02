@@ -7,10 +7,10 @@
 @inject IJSRuntime jsRuntime
 @implements IAsyncDisposable
 
-<div style=@($"display: {(sessionInitialized ? "none" : "")};")>
-  Your Name:
-  <input @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="20"/>
-  <button @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
+<div style=@($"display: {(sessionInitialized ? "none" : "")};") class="div-center">
+  <div class="div-margin-1">Your Name:</div>
+  <input class="div-margin-1" @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="20"/>
+  <button class="div-margin-1" @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
   <div>
     @joinErrorMessage
   </div>
@@ -21,26 +21,18 @@
   @onkeydown="@KeyDown"
   tabindex="0"
 >
-  @RenderSessionId(SessionId)
+  @RenderTitleLogo()
+  @RenderSessionId()
   <div>
-    @RenderPlayerDataTable((playerName, guess, correctAnswer!, playerDataDictionary))
+    @RenderPlayerDataTable()
   </div>
   <div class="div-center">
     @submitError
     @holdMessage
   </div>
   <br/>
-  @RenderKeyboard((playerName, correctAnswer, playerDataDictionary))
-
-  <div class="div-center">
-    <div class="reset-row" @onclick="NewGame">
-      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>R</div>
-      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
-      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>S</div>
-      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
-      <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>T</div>
-    </div>
-  </div>
+  @RenderKeyboard()
+  @RenderResetButton()
 </div>
 
 @code {
@@ -49,24 +41,22 @@
 
   private String playerName = "";
   private String joinErrorMessage = "";
-  private static String guess = "";
+  private String guess = "";
   private String submitError = "";
   private String holdMessage = "";
   private HubConnection? hubConnection;
-  private static Boolean canSubmitNewGuess;
+  private Boolean canSubmitNewGuess;
   private Boolean sessionInitialized = false;
   private HashSet<String> fullWords = new();
-  private static String? correctAnswer;
+  private String? correctAnswer;
 
   private String resetButtonClass = "";
-  private static Dictionary<String, PlayerData> playerDataDictionary = new();
 
-  private static WordleOff.Client.Pages.Session? singleTon;
+  private String copyIdMessage = "Click ID Above to Copy URL";
+  private Dictionary<String, PlayerData> playerDataDictionary = new();
 
   protected override async Task OnInitializedAsync()
   {
-    singleTon = this;
-
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
       .Build();
@@ -197,10 +187,10 @@
     }
   }
 
-  public static async Task HandleKeyStatic()
+  public async Task CopyUrlToClipboard()
   {
-    @* if (singleTon is not null)
-      await singleTon.HandleKey(key); *@
+    await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", $"https://www.wordleoff.com/game/{SessionId}");
+    copyIdMessage = "Click ID Above to Copy URL (Copied!!!)";
   }
 
   public Boolean IsConnected => hubConnection?.State == HubConnectionState.Connected;
@@ -257,7 +247,7 @@
 
   private async Task NewGame()
   {
-    if (!await jsRuntime.InvokeAsync<Boolean>("confirm", "Do you want to start a new game? This will reset everyone's progress"))
+    if (!await jsRuntime.InvokeAsync<Boolean>("confirm", "This will reset everyone's progress. Do you really want to start a new game?"))
       return;
     if (hubConnection is not null)
       await hubConnection.SendAsync("ClientResetCurrentSession", SessionId);
@@ -283,258 +273,337 @@
 
   #region RenderFragments
 
-  private RenderFragment<String> RenderSessionId = sessionId => __builder =>
+  private RenderFragment RenderTitleLogo()
   {
-    <div class="div-center div-center-vertical">
-      <div class="title-row">
-        @foreach (Char c in sessionId)
+    return __builder =>
+    {
+      <div class="div-center">
+        <div class="title-logo-row">
+          <div class="guess-tile">W</div>
+          <div class="guess-tile">O</div>
+          <div class="guess-tile">R</div>
+          <div class="guess-tile">D</div>
+          <div class="guess-tile">L</div>
+          <div class="guess-tile">E</div>
+          <div class="guess-tile">O</div>
+          <div class="guess-tile">F</div>
+          <div class="guess-tile">F</div>
+        </div>
+      </div>
+    };
+  }
+
+  private RenderFragment RenderSessionId()
+  {
+    return __builder =>
+    {
+      <div class="div-center div-center-vertical">
+        <div class="session-id-row" @onclick="CopyUrlToClipboard">
+          @foreach (Char c in SessionId)
+          {
+            <div class="guess-tile guess-tile-small guess-absent">@c</div>
+          }
+        </div>
+        <div>@copyIdMessage</div>
+      </div>
+    };
+  }
+
+  private RenderFragment RenderPlayerDataTable()
+  {
+    return __builder => {
+      if (correctAnswer is null)
+      {
+        <div></div>
+      }
+      else
+      {
+        if (playerDataDictionary.Count == 0)
+          return;
+        Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
+        Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
+        Boolean godMode = playerDataDictionary.ContainsKey(playerName) ? playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer) && allPlayersAtMaxGuesses: false;
+
+        Int32 maxIndex = playerDataDictionary.Count == 0 ? -1 : playerDataDictionary.Max(x => x.Value.Index);
+        List<KeyValuePair<String, PlayerData>?> orderedList = new();
+        for (Int32 i = 1; i <= maxIndex; ++i)
         {
-          <div class="guess-tile guess-tile-small guess-absent">@c</div>
+          var matchingPlayers = playerDataDictionary.Where(x => x.Value.Index == i);
+          if (matchingPlayers.Count() > 0)
+            orderedList.Add(matchingPlayers.First());
+        }
+        <table>
+          <tr>
+            @for (Int32 i = 0; i < orderedList.Count; ++i)
+            {
+              var pairValue = orderedList[i]!.Value;
+              var currentPlayerName = pairValue.Key;
+              var currentPlayerData = pairValue.Value;
+              Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
+              Int32 emptyRowOffset = 0;
+              if (isCurrentPlayerLocal)
+                emptyRowOffset = 1;
+              String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
+              <td>
+                <div class="play-container">
+                  <div>@($"{currentPlayerName}{youIndicator}")</div>
+                  <div class="guess-board">
+                    @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
+                    {
+                      String currentGuess = currentPlayerData.PlayData[j];
+                      @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
+                        @RenderTempGuessRow(currentPlayerName, currentGuess)
+                      else
+                        @RenderGuessRow(currentGuess, !isCurrentPlayerLocal && !godMode)
+                    }
+                    @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
+                    {
+                      @RenderGuessingRow()
+                    }
+                    @for (Int32 j = currentPlayerData.PlayData.Count + emptyRowOffset; j < 6; ++j)
+                    {
+                      @RenderEmptyRow()
+                    }
+                  </div>
+                </div>              
+              </td>
+            }
+          </tr>
+        </table>
+      }
+    };
+    
+  }
+
+  private RenderFragment RenderGuessRow(String currentGuess, Boolean hideLetters)
+  {
+    return __builder =>
+    {
+      if (correctAnswer is null)
+      {
+        <div></div>
+      }
+      else
+      {
+        StringBuilder sb = new StringBuilder();
+        Dictionary<Char, Int32> letterCountInAnswer = new();
+        for (Int32 i = 0; i < correctAnswer.Length; ++i)
+        {
+          sb.Append('0');
+          if (letterCountInAnswer.ContainsKey(correctAnswer[i]))
+            ++letterCountInAnswer[correctAnswer[i]];
+          else
+            letterCountInAnswer.Add(correctAnswer[i], 1);
+        }
+        Char[] backgroundColors = sb.ToString().ToCharArray();
+        for (Int32 i = 0; i < correctAnswer.Length; ++i)
+          if (currentGuess[i] == correctAnswer[i])
+          {
+            backgroundColors[i] = '2';
+            --letterCountInAnswer[currentGuess[i]];
+          }
+        for (Int32 i = 0; i < correctAnswer.Length; ++i)
+          if (correctAnswer.Contains(currentGuess[i]) && letterCountInAnswer[currentGuess[i]] > 0)
+          {
+            backgroundColors[i] = '1';
+            --letterCountInAnswer[currentGuess[i]];
+          }
+        <div class="guess-row">
+          @for (Int32 i = 0; i < correctAnswer.Length; ++i)
+          {
+            Char displayChar = hideLetters ? '?' : currentGuess[i];
+            String backgroundColorCSS = "";
+            @switch (backgroundColors[i])
+            {
+              case '0':
+                backgroundColorCSS = "guess-absent";
+                break;
+              case '1':
+                backgroundColorCSS = "guess-present";
+                break;
+              case '2':
+                backgroundColorCSS = "guess-correct";
+                break;
+            }
+            <div class=@($"guess-tile {backgroundColorCSS}")>@displayChar</div>
+          }
+        </div>
+      }
+    };
+  }
+
+  private RenderFragment RenderTempGuessRow(String currentPlayerName, String currentGuess)
+  {
+    return __builder => {
+      <div class="guess-row">
+        @if (playerName == currentPlayerName)
+        {
+          @foreach (Char c in currentGuess)
+          {
+            <div class="guess-tile guess-guessing">@c</div>
+          }
+        }
+        else
+        {
+          @foreach (Char c in currentGuess)
+          {
+            <div class="guess-tile guess-guessing">?</div>
+          }
         }
       </div>
-      <p>Share this number with your friends to play together. Or just click it to copy URL.</p>
-    </div>
-  };
+    };    
+  }
 
-  private RenderFragment<(String PlayerName, String Guess, String CorrectAnswer, Dictionary<String, PlayerData> PlayerDataDictionary)> RenderPlayerDataTable = data => __builder =>
+  private RenderFragment RenderEmptyRow()
   {
-    String playerName = data.PlayerName;
-    String guess = data.Guess;
-    String correctAnswer = data.CorrectAnswer;
-    Dictionary<String, PlayerData> playerDataDictionary = data.PlayerDataDictionary;
-    if (playerDataDictionary.Count == 0)
-      return;
-    Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
-    Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
-    Boolean godMode = playerDataDictionary.ContainsKey(playerName) ? playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer) && allPlayersAtMaxGuesses: false;
-
-    Int32 maxIndex = playerDataDictionary.Count == 0 ? -1 : playerDataDictionary.Max(x => x.Value.Index);
-    List<KeyValuePair<String, PlayerData>?> orderedList = new();
-    for (Int32 i = 1; i <= maxIndex; ++i)
+    return __builder =>
     {
-      var matchingPlayers = playerDataDictionary.Where(x => x.Value.Index == i);
-      if (matchingPlayers.Count() > 0)
-        orderedList.Add(matchingPlayers.First());
-    }
-    <table>
-      <tr>
-        @for (Int32 i = 0; i < orderedList.Count; ++i)
+      if (correctAnswer is null)
+      {
+        <div></div>
+      }
+      else
+      {
+        <div class="guess-row">
+          @foreach (Char c in correctAnswer)
+          {
+            <div class="guess-tile guess-empty"></div>
+          }
+        </div>
+      }
+    };
+  }
+
+  private RenderFragment RenderGuessingRow()
+  {
+    return __builder =>
+    {
+      if (correctAnswer is null)
+      {
+        <div></div>
+      }
+      else
+      {
+        <div class="guess-row">
+          @for (Int32 i = 0; i < guess.Length; ++i)
+          {
+            <div class=@($"guess-tile guess-guessing")>@guess[i]</div>
+          }
+          @for (Int32 i = guess.Length; i < correctAnswer.Length; ++i)
+          {
+            <div class="guess-tile guess-empty"></div>
+          }
+        </div>
+      }
+    };
+  }
+
+  private RenderFragment RenderKeyboard()
+  {
+    return __builder =>
+    {
+      if (correctAnswer is not null)
+      {
+        List<String> playData = playerDataDictionary[playerName].PlayData;
+
+        Dictionary<Char, String> letterTileColors = new();
+        for (Char c = 'a'; c <= 'z'; ++c)
+          letterTileColors.Add(c, "guess-guessing");
+        foreach (String play in playData)
         {
-          var pairValue = orderedList[i]!.Value;
-          var currentPlayerName = pairValue.Key;
-          var currentPlayerData = pairValue.Value;
-          Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
-          Int32 emptyRowOffset = 0;
-          if (isCurrentPlayerLocal)
-            emptyRowOffset = 1;
-          String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
-          <td>
-            <div class="play-container">
-              <div>@($"{currentPlayerName}{youIndicator}")</div>
-              <div class="guess-board">
-                @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
-                {
-                  String currentGuess = currentPlayerData.PlayData[j];
-                  @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
-                    @RenderTempGuessRow((playerName, currentPlayerName, currentGuess))
-                  else
-                    @RenderGuessRow((correctAnswer, currentGuess, !isCurrentPlayerLocal && !godMode))
-                }
-                @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
-                {
-                  @RenderGuessingRow((correctAnswer, guess))
-                }
-                @for (Int32 j = currentPlayerData.PlayData.Count + emptyRowOffset; j < 6; ++j)
-                {
-                  @RenderEmptyRow(correctAnswer)
-                }
+          for (Int32 i = 0; i < play.Length; ++i)
+          {
+            Char c = play[i];
+            if (correctAnswer[i] == c)
+              letterTileColors[c] = "guess-correct";
+            else if (correctAnswer.Contains(c) && letterTileColors[c] != "guess-correct")
+              letterTileColors[c] = "guess-present";
+          }
+        }
+        String qString = 'q'.ToString();
+        <div class="div-center">
+          <div class="keyboard-board">
+            <div class="div-center div-center-vertical">
+              <div class="keyboard-row">
+                @RenderKeyboardChar(letterTileColors, 'q')
+                @RenderKeyboardChar(letterTileColors, 'w')
+                @RenderKeyboardChar(letterTileColors, 'e')
+                @RenderKeyboardChar(letterTileColors, 'r')
+                @RenderKeyboardChar(letterTileColors, 't')
+                @RenderKeyboardChar(letterTileColors, 'y')
+                @RenderKeyboardChar(letterTileColors, 'u')
+                @RenderKeyboardChar(letterTileColors, 'i')
+                @RenderKeyboardChar(letterTileColors, 'o')
+                @RenderKeyboardChar(letterTileColors, 'p')
               </div>
-            </div>              
-          </td>
-        }
-      </tr>
-    </table>
-  };
-
-  private static RenderFragment<(String CorrectAnswer, String Guess, Boolean HideLetters)> RenderGuessRow = data => __builder =>
-  {
-    String correctAnswer = data.CorrectAnswer;
-    String guess = data.Guess;
-    Boolean hideLetters = data.HideLetters;
-    
-    StringBuilder sb = new StringBuilder();
-    Dictionary<Char, Int32> letterCountInAnswer = new();
-    for (Int32 i = 0; i < correctAnswer.Length; ++i)
-    {
-      sb.Append('0');
-      if (letterCountInAnswer.ContainsKey(correctAnswer[i]))
-        ++letterCountInAnswer[correctAnswer[i]];
-      else
-        letterCountInAnswer.Add(correctAnswer[i], 1);
-    }
-    Char[] backgroundColors = sb.ToString().ToCharArray();
-    for (Int32 i = 0; i < correctAnswer.Length; ++i)
-      if (guess[i] == correctAnswer[i])
-      {
-        backgroundColors[i] = '2';
-        --letterCountInAnswer[guess[i]];
-      }
-    for (Int32 i = 0; i < correctAnswer.Length; ++i)
-      if (correctAnswer.Contains(guess[i]) && letterCountInAnswer[guess[i]] > 0)
-      {
-        backgroundColors[i] = '1';
-        --letterCountInAnswer[guess[i]];
-      }
-    <div class="guess-row">
-      @for (Int32 i = 0; i < correctAnswer.Length; ++i)
-      {
-        Char displayChar = hideLetters ? '?' : guess[i];
-        String backgroundColorCSS = "";
-        @switch (backgroundColors[i])
-        {
-          case '0':
-            backgroundColorCSS = "guess-absent";
-            break;
-          case '1':
-            backgroundColorCSS = "guess-present";
-            break;
-          case '2':
-            backgroundColorCSS = "guess-correct";
-            break;
-        }
-        <div class=@($"guess-tile {backgroundColorCSS}")>@displayChar</div>
-      }
-    </div>
-  };
-
-  private static RenderFragment<(String PlayerName, String CurrentPlayerName, String Guess)> RenderTempGuessRow = data => __builder =>
-  {
-    String playerName = data.PlayerName;
-    String currentPlayerName = data.CurrentPlayerName;
-    String guess = data.Guess;
-
-    <div class="guess-row">
-      @if (playerName == currentPlayerName)
-      {
-        @for (Int32 k = 0; k < guess.Length; ++k)
-        {
-          <div class="guess-tile guess-guessing">@guess[k]</div>
-        }
-      }
-      else
-      {
-        @for (Int32 k = 0; k < guess.Length; ++k)
-        {
-          <div class="guess-tile guess-guessing">?</div>
-        }
-      }
-    </div>
-  };
-
-  private static RenderFragment<String> RenderEmptyRow = correctAnswer => __builder =>
-  {
-    <div class="guess-row">
-      @for (Int32 k = 0; k < correctAnswer.Length; ++k)
-      {
-        <div class="guess-tile guess-empty"></div>
-      }
-    </div>
-  };
-
-  private static RenderFragment<(String CorrectAnswer, String Guess)> RenderGuessingRow = data => __builder =>
-  {
-    String correctAnswer = data.CorrectAnswer;
-    String guess = data.Guess;
-    <div class="guess-row">
-      @for (Int32 i = 0; i < guess.Length; ++i)
-      {
-        <div class=@($"guess-tile guess-guessing")>@guess[i]</div>
-      }
-      @for (Int32 i = guess.Length; i < correctAnswer.Length; ++i)
-      {
-        <div class="guess-tile guess-empty"></div>
-      }
-    </div>
-  };
-
-  private RenderFragment<(String PlayerName, String? CorrectAnswer, Dictionary<String, PlayerData> PlayerDataDictionary)> RenderKeyboard = data => __builder =>
-  {
-    String? correctAnswer = data.CorrectAnswer;
-    if (correctAnswer is not null)
-    {
-      String playerName = data.PlayerName;
-      Dictionary<String, PlayerData> playerDataDictionary = data.PlayerDataDictionary;
-      List<String> playData = playerDataDictionary[playerName].PlayData;
-
-      Dictionary<Char, String> letterTileColors = new();
-      for (Char c = 'a'; c <= 'z'; ++c)
-        letterTileColors.Add(c, "guess-guessing");
-      foreach (String play in playData)
-      {
-        for (Int32 i = 0; i < play.Length; ++i)
-        {
-          Char c = play[i];
-          if (correctAnswer[i] == c)
-            letterTileColors[c] = "guess-correct";
-          else if (correctAnswer.Contains(c) && letterTileColors[c] != "guess-correct")
-            letterTileColors[c] = "guess-present";
-        }
-      }
-      <div class="div-center">
-        <div class="keyboard-board">
-          <div class="div-center div-center-vertical">
-            <div class="keyboard-row">
-              @RenderKeyboardChar((letterTileColors, 'q'))
-              @RenderKeyboardChar((letterTileColors, 'w'))
-              @RenderKeyboardChar((letterTileColors, 'e'))
-              @RenderKeyboardChar((letterTileColors, 'r'))
-              @RenderKeyboardChar((letterTileColors, 't'))
-              @RenderKeyboardChar((letterTileColors, 'y'))
-              @RenderKeyboardChar((letterTileColors, 'u'))
-              @RenderKeyboardChar((letterTileColors, 'i'))
-              @RenderKeyboardChar((letterTileColors, 'o'))
-              @RenderKeyboardChar((letterTileColors, 'p'))
-            </div>
-            <div class="keyboard-row">
-              <div class=@($"guess-tile guess-tiles-offset-50")></div>
-              @RenderKeyboardChar((letterTileColors, 'a'))
-              @RenderKeyboardChar((letterTileColors, 's'))
-              @RenderKeyboardChar((letterTileColors, 'd'))
-              @RenderKeyboardChar((letterTileColors, 'f'))
-              @RenderKeyboardChar((letterTileColors, 'g'))
-              @RenderKeyboardChar((letterTileColors, 'h'))
-              @RenderKeyboardChar((letterTileColors, 'j'))
-              @RenderKeyboardChar((letterTileColors, 'k'))
-              @RenderKeyboardChar((letterTileColors, 'l'))
-              <div class=@($"guess-tile guess-tiles-offset-50")></div>
-            </div>
-            <div class="keyboard-row">
-              <div class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")>Enter</div>
-              @RenderKeyboardChar((letterTileColors, 'z'))
-              @RenderKeyboardChar((letterTileColors, 'x'))
-              @RenderKeyboardChar((letterTileColors, 'c'))
-              @RenderKeyboardChar((letterTileColors, 'v'))
-              @RenderKeyboardChar((letterTileColors, 'b'))
-              @RenderKeyboardChar((letterTileColors, 'n'))
-              @RenderKeyboardChar((letterTileColors, 'm'))
-              <div class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")>⌫</div>
+              <div class="keyboard-row">
+                <div class=@($"guess-tile guess-tiles-offset-50")></div>
+                @RenderKeyboardChar(letterTileColors, 'a')
+                @RenderKeyboardChar(letterTileColors, 's')
+                @RenderKeyboardChar(letterTileColors, 'd')
+                @RenderKeyboardChar(letterTileColors, 'f')
+                @RenderKeyboardChar(letterTileColors, 'g')
+                @RenderKeyboardChar(letterTileColors, 'h')
+                @RenderKeyboardChar(letterTileColors, 'j')
+                @RenderKeyboardChar(letterTileColors, 'k')
+                @RenderKeyboardChar(letterTileColors, 'l')
+                <div class=@($"guess-tile guess-tiles-offset-50")></div>
+              </div>
+              <div class="keyboard-row">
+                <div
+                  class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
+                  @onclick="@(e => HandleKey("Enter"))"
+                >
+                  Enter
+                </div>
+                @RenderKeyboardChar(letterTileColors, 'z')
+                @RenderKeyboardChar(letterTileColors, 'x')
+                @RenderKeyboardChar(letterTileColors, 'c')
+                @RenderKeyboardChar(letterTileColors, 'v')
+                @RenderKeyboardChar(letterTileColors, 'b')
+                @RenderKeyboardChar(letterTileColors, 'n')
+                @RenderKeyboardChar(letterTileColors, 'm')
+                <div
+                  class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
+                  @onclick="@(e => HandleKey("Backspace"))"
+                >
+                  ⌫
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    }
-  };
+      }
+    };
+  }
 
-  private static RenderFragment<(Dictionary<Char, String> LetterTileColors, Char RenderChar)> RenderKeyboardChar = data => __builder =>
+  private RenderFragment RenderKeyboardChar(Dictionary<Char, String> letterTileColors, Char renderChar)
   {
-    Dictionary<Char, String> letterTileColors = data.LetterTileColors;
-    Char renderChar = data.RenderChar;
-    String renderString = renderChar.ToString();
-    String classString = letterTileColors[renderChar];
-    <div class=@($"guess-tile guess-tile-keyboard {classString}")>
-      @renderChar
-    </div>
-  };
+    return __builder => {
+      <div
+        class=@($"guess-tile guess-tile-keyboard {letterTileColors[renderChar]}")
+        @onclick="@(e => HandleKey(renderChar.ToString()))"
+      >
+        @renderChar
+      </div>
+    };
+  } 
+
+  private RenderFragment RenderResetButton()
+  {
+    return __builder =>
+    {
+      <div class="div-center">
+        <div class="reset-row" @onclick="NewGame">
+          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>R</div>
+          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
+          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>S</div>
+          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
+          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>T</div>
+        </div>
+      </div>
+    };
+  }
 
   #endregion
 }

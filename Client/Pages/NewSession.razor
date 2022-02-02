@@ -3,7 +3,9 @@
 @inject NavigationManager NavigationManager
 @implements IAsyncDisposable
 
-<p><button @onclick="CreateNewGame" disabled="@(!IsConnected)">Create a new game</button></p>
+<div class="div-center">
+  <button @onclick="CreateNewGame" disabled="@(!IsConnected)">Create a new game</button>
+</div>
 
 @code {
   private HubConnection? hubConnection;
