@@ -346,7 +346,7 @@
           return;
         Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
         Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
-        Boolean godMode = playerDataDictionary.ContainsKey(playerName) ? playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer) && allPlayersAtMaxGuesses: false;
+        Boolean godMode = playerDataDictionary.ContainsKey(playerName) ? (playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer) && allPlayersAtMaxGuesses) || gameOver : false;
 
         Int32 maxIndex = playerDataDictionary.Count == 0 ? -1 : playerDataDictionary.Max(x => x.Value.Index);
         List<KeyValuePair<String, PlayerData>?> orderedList = new();
@@ -532,8 +532,11 @@
         Dictionary<Char, Int32> letterTileValues = new();
         for (Char c = 'a'; c <= 'z'; ++c)
           letterTileValues.Add(c, -1);
-        Boolean excludeLast = !canSubmitNewGuess && !alreadyGuessedCorrectly && !gameOver;
-        Int32 playDataLimit = playData.Count - (excludeLast ? 1 : 0);
+        Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
+        Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
+        Boolean includeLast = (canSubmitNewGuess || (alreadyGuessedCorrectly && allPlayersAtMaxGuesses) || gameOver);
+        
+        Int32 playDataLimit = playData.Count - (includeLast ? 0 : 1);
         for (Int32 i = 0; i < playDataLimit; ++i)
         {
           String play = playData[i];
