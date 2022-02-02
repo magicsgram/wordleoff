@@ -1,12 +1,15 @@
 table {
   font-family: arial, sans-serif;
   border-collapse: collapse;
-  width: 100%;
 }
 
 td, th {
   text-align: center;
-  padding: 8px;
+  padding: 10px;
+}
+
+.my-board {
+  border: 1px solid #414141;
 }
 
 .game {

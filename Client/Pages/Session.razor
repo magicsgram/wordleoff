@@ -23,10 +23,11 @@
   class="game"
   @onkeydown="@KeyDown"
   tabindex="0"
+  @ref="gameDiv"
 >
   @RenderTitleLogo()
   @RenderSessionId()
-  <div>
+  <div class="div-center">
     @RenderPlayerDataTable()
   </div>
   <div class="div-center">
@@ -59,6 +60,8 @@
 
   private String copyIdMessage = "Click ID Above to Copy URL";
   private Dictionary<String, PlayerData> playerDataDictionary = new();
+  
+  private ElementReference gameDiv;
 
   protected override async Task OnInitializedAsync()
   {
@@ -98,18 +101,16 @@
 
   public async Task UpdatePlayerData(Dictionary<String, PlayerData> newPlayerDataDictionary)
   {
-    await Task.Run(()=>
+    sessionInitialized = true;
+    playerDataDictionary = newPlayerDataDictionary;
+    if (hubConnection is not null)
     {
-      sessionInitialized = true;
-      playerDataDictionary = newPlayerDataDictionary;
-      if (hubConnection is not null)
-      {
-        playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
-        UpdateCanSubmitNewGuess();
-      }
-      UpdateResetButtonClass();
-      StateHasChanged();
-    });
+      playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
+      UpdateCanSubmitNewGuess();
+    }
+    UpdateResetButtonClass();
+    StateHasChanged();
+    await jsRuntime.InvokeVoidAsync("setFocusToElement", gameDiv);
   }
 
   public void HandleSessionFindResult(Boolean result)
@@ -258,7 +259,7 @@
     else if (!alreadyGuessedCorrectly && guessLimitReached)
       holdMessage = $"The answer is {correctAnswer?.ToUpper() ?? ""}";
     else
-      holdMessage = "";
+      holdMessage = "ㅤ";
     canSubmitNewGuess = behindOthers && !alreadyGuessedCorrectly && !guessLimitReached;
   }
 
@@ -361,7 +362,7 @@
               if (isCurrentPlayerLocal)
                 emptyRowOffset = 1;
               String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
-              <td>
+              <td class=@($"{(playerName == currentPlayerName && orderedList.Count > 1 ? "my-board" : "")}")>
                 <div class="play-container">
                   <div>@($"{currentPlayerName}{youIndicator}")</div>
                   <div class="guess-board">
