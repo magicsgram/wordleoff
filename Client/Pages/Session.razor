@@ -403,27 +403,26 @@
       }
       else
       {
-        StringBuilder sb = new StringBuilder();
+        List<Int32> colorList = new();
         Dictionary<Char, Int32> letterCountInAnswer = new();
         for (Int32 i = 0; i < correctAnswer.Length; ++i)
         {
-          sb.Append('0');
+          colorList.Add(0);
           if (letterCountInAnswer.ContainsKey(correctAnswer[i]))
             ++letterCountInAnswer[correctAnswer[i]];
           else
             letterCountInAnswer.Add(correctAnswer[i], 1);
         }
-        Char[] backgroundColors = sb.ToString().ToCharArray();
         for (Int32 i = 0; i < correctAnswer.Length; ++i)
           if (currentGuess[i] == correctAnswer[i])
           {
-            backgroundColors[i] = '2';
+            colorList[i] = 2;
             --letterCountInAnswer[currentGuess[i]];
           }
         for (Int32 i = 0; i < correctAnswer.Length; ++i)
-          if (correctAnswer.Contains(currentGuess[i]) && letterCountInAnswer[currentGuess[i]] > 0)
+          if (correctAnswer.Contains(currentGuess[i]) && letterCountInAnswer[currentGuess[i]] > 0 && colorList[i] < 1)
           {
-            backgroundColors[i] = '1';
+            colorList[i] = 1;
             --letterCountInAnswer[currentGuess[i]];
           }
         <div class="guess-row">
@@ -431,15 +430,15 @@
           {
             Char displayChar = hideLetters ? '?' : currentGuess[i];
             String backgroundColorCSS = "";
-            @switch (backgroundColors[i])
+            @switch (colorList[i])
             {
-              case '0':
+              case 0:
                 backgroundColorCSS = "guess-absent";
                 break;
-              case '1':
+              case 1:
                 backgroundColorCSS = "guess-present";
                 break;
-              case '2':
+              case 2:
                 backgroundColorCSS = "guess-correct";
                 break;
             }
@@ -524,21 +523,37 @@
       {
         List<String> playData = playerDataDictionary[playerName].PlayData;
 
-        Dictionary<Char, String> letterTileColors = new();
+        Dictionary<Char, Int32> letterTileValues = new();
         for (Char c = 'a'; c <= 'z'; ++c)
-          letterTileColors.Add(c, "guess-guessing");
+          letterTileValues.Add(c, -1);
         foreach (String play in playData)
         {
           for (Int32 i = 0; i < play.Length; ++i)
           {
             Char c = play[i];
             if (correctAnswer[i] == c)
-              letterTileColors[c] = "guess-correct";
-            else if (correctAnswer.Contains(c) && letterTileColors[c] != "guess-correct")
-              letterTileColors[c] = "guess-present";
+              letterTileValues[c] = 2;
+            else if (correctAnswer.Contains(c) && letterTileValues[c] < 2)
+              letterTileValues[c] = 1;
+            else if (letterTileValues[c] < 1)
+              letterTileValues[c] = 0;
           }
         }
-        String qString = 'q'.ToString();
+        Dictionary<Char, String> letterTileColors = new();
+        foreach (var pair in letterTileValues)
+        {
+          letterTileColors.Add(
+            pair.Key,
+            pair.Value switch {
+              -1 => "guess-guessing",
+              0 => "guess-absent",
+              1 => "guess-present",
+              2 => "guess-correct",
+              _ => "guess-guessing"
+            }
+          );
+        }
+
         <div class="div-center">
           <div class="keyboard-board">
             <div class="div-center div-center-vertical">

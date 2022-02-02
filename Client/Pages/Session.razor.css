@@ -101,12 +101,14 @@ td, th {
   font-size: 1.8rem;
   line-height: 1.8rem;
   margin: 2px;
+  border-radius: 4px;
 }
 
 .guess-tile-keyboard-small {
   font-size: 1.0rem;
   line-height: 1.0rem;
   margin: 2px;
+  border-radius: 4px;
 }
 
 .guess-tiles-offset-50 {
