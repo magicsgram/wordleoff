@@ -53,11 +53,13 @@ public class WordleOffHub : Hub
     await SendFullGameState(sessionId);
   }
 
+  public async Task ClientSearchSession(String sessionId) => await Clients.Caller.SendAsync("ServerSessionFindResult", gameSessions.ContainsKey(sessionId));
+
   public async Task ClientConnectNew(String sessionId, String newPlayerName)
   {
     if (!gameSessions.ContainsKey(sessionId))
     {
-      await Clients.Caller.SendAsync("GameSessionNotFound");
+      await SendJoinError("Session not found");
       return;
     }
 

@@ -7,7 +7,10 @@
 @inject IJSRuntime jsRuntime
 @implements IAsyncDisposable
 
-<div style=@($"display: {(sessionInitialized ? "none" : "")};") class="div-center">
+<div style=@($"display: {(sessionFound ? "none" : "")};") class="div-center">
+  @searchSessionMessage
+</div>
+<div style=@($"display: {(!sessionInitialized && sessionFound? "" : "none")};") class="div-center">
   <div class="div-margin-1">Your Name:</div>
   <input class="div-margin-1" @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="20"/>
   <button class="div-margin-1" @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
@@ -16,7 +19,7 @@
   </div>
 </div>
 <div
-  style=@($"display: {(sessionInitialized ? "" : "none")};")
+  style=@($"display: {(sessionInitialized && sessionFound ? "" : "none")};")
   class="game"
   @onkeydown="@KeyDown"
   tabindex="0"
@@ -44,9 +47,11 @@
   private String guess = "";
   private String submitError = "";
   private String holdMessage = "";
+  private String searchSessionMessage = "Searching....";
   private HubConnection? hubConnection;
   private Boolean canSubmitNewGuess;
   private Boolean sessionInitialized = false;
+  private Boolean sessionFound = false;
   private HashSet<String> fullWords = new();
   private String? correctAnswer;
 
@@ -66,8 +71,11 @@
     hubConnection.On<Dictionary<String, PlayerData>>("ServerPlayerData", async (newPlayerDataDictionary) => await UpdatePlayerData(newPlayerDataDictionary));
     hubConnection.On<String>("ServerCurrentAnswer", (correctAnswer) => UpdateCurrentAnswer(correctAnswer));
     hubConnection.On<String>("ServerJoinFail", (message) => DisplayJoinFailMessage(message));
+    hubConnection.On<Boolean>("ServerSessionFindResult", (result) => HandleSessionFindResult(result));
     
     await hubConnection.StartAsync();
+    
+    await hubConnection.InvokeAsync("ClientSearchSession", SessionId);
   }
 
   #region Received from Server
@@ -102,6 +110,15 @@
       UpdateResetButtonClass();
       StateHasChanged();
     });
+  }
+
+  public void HandleSessionFindResult(Boolean result)
+  {
+    if (result)
+      sessionFound = true;
+    else
+      searchSessionMessage = "Session not found!!";
+    StateHasChanged();
   }
 
   public void DisplayJoinFailMessage(String message) => joinErrorMessage = message;
