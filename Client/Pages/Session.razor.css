@@ -5,11 +5,13 @@ table {
 
 td, th {
   text-align: center;
-  padding: 10px;
+  padding: 6px;
+  padding-top: 2px;
+  padding-bottom: 2px;
 }
 
 .my-board {
-  border: 1px solid #414141;
+  border: 1px solid #444;
 }
 
 .game {
@@ -22,6 +24,11 @@ td, th {
   align-content: center;
   justify-content: center;
   flex-grow: 1;
+}
+
+.dictionary-dot-com {
+  font-size: 0.7rem;
+  text-decoration: underline;
 }
 
 .guess-board {
@@ -48,15 +55,13 @@ td, th {
 }
 
 .keyboard-board {
-  width: 480px;
-  height: 180px;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .keyboard-row {
   display: flex;
-  width: 480px;
-  height: 58px;
+  width: 400px;
+  height: 50px;
 }
 
 .title-logo-row {
@@ -64,7 +69,7 @@ td, th {
   grid-template-columns: repeat(9, 1.5fr);
   grid-gap: 2px;
   width: 450px;
-  height: 45px;
+  height: 40px;
   margin-bottom: 5px;
 }
 
@@ -73,7 +78,14 @@ td, th {
   grid-template-columns: repeat(11, 1.5fr);
   grid-gap: 2px;
   width: 300px;
-  height: 25px;
+  height: 20px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+.copy-id {
+  font-size: 0.75rem;
+  color: #999;
 }
 
 .guess-tile {
@@ -105,8 +117,8 @@ td, th {
 }
 
 .guess-tile-keyboard-small {
-  font-size: 1.0rem;
-  line-height: 1.0rem;
+  font-size: 0.6rem;
+  line-height: 0.6rem;
   margin: 2px;
   border-radius: 4px;
 }
@@ -115,13 +127,18 @@ td, th {
   width: 50%;
 }
 
-.guess-tiles-offset-150 {
-  width: 150%;
+.guess-tiles-offset-200 {
+  width: 200%;
 }
 
 .guess-tile-small {
   font-size: 1.2rem;
   line-height: 1.2rem;
+}
+
+.guess-tile-session-id {
+  font-size: 1.1rem;
+  line-height: 1.1rem;
 }
 
 .guess-present {
@@ -152,6 +169,14 @@ td, th {
 
 .div-margin-1 {
   margin: 4px;
+}
+
+.div-height-1 {
+  height: 1.0rem
+}
+
+.div-margin-top {
+  margin-top: 4px;
 }
 
 .div-center-vertical {

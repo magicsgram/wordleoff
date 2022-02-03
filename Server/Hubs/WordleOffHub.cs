@@ -1,31 +1,40 @@
-using System.Text;
 using Microsoft.AspNetCore.SignalR;
-using WordleOff.Shared;
+using WordleOff.Shared.Games;
 
 namespace WordleOff.Server.Hubs;
 
 public class WordleOffHub : Hub
 {
   private static Boolean initialized = false;
-  private static Random random = new();
-  
-  private static Dictionary<String, GameSession> gameSessions = new();
-  private static Dictionary<String, String> connectionIdToSessionId = new();
+  private static readonly Random random = new();
+
+  private static readonly Dictionary<String, GameSession> gameSessions = new();
+  private static readonly Dictionary<String, String> connectionIdToSessionId = new();
 
   private static IHubCallerClients? latestClients;
 
-  private static Timer removeDisconnectedPlayersTimer = new(RemoveDisconnectedPlayers, null, 1000, 1000);
-  private static Timer removeExpiredSessionsTimer = new(RemoveExpiredSessions, null, 10000, 10000);
+  private static System.Timers.Timer? removeDisconnectedPlayersTimer;
+  private static System.Timers.Timer? removeExpiredSessionsTimer;
 
   public WordleOffHub() : base()
   {
     if (!initialized)
     {
-      // Todo: initialize static objects here.
+      removeDisconnectedPlayersTimer = new(1000);
+      removeDisconnectedPlayersTimer.Elapsed += RemoveDisconnectedPlayers;
+      removeDisconnectedPlayersTimer.AutoReset = true;
+      removeDisconnectedPlayersTimer.Enabled = true;
+      removeDisconnectedPlayersTimer.Start();
+
+      removeExpiredSessionsTimer = new(15000);
+      removeExpiredSessionsTimer.Elapsed += RemoveExpiredSessions;
+      removeExpiredSessionsTimer.AutoReset = true;
+      removeExpiredSessionsTimer.Enabled = true;
+      removeExpiredSessionsTimer.Start();
+
       initialized = true;
     }
   }
-
 
   #region Received from Client
 
@@ -45,7 +54,7 @@ public class WordleOffHub : Hub
   {
     if (!gameSessions.ContainsKey(sessionId))
     {
-      await Clients.Caller.SendAsync("GameSessionNotFound");
+      await SendJoinError(ServerJoinError.SessionNotFound);
       return;
     }
     gameSessions[sessionId].ResetGame();
@@ -59,7 +68,7 @@ public class WordleOffHub : Hub
   {
     if (!gameSessions.ContainsKey(sessionId))
     {
-      await SendJoinError("Session not found");
+      await SendJoinError(ServerJoinError.SessionNotFound);
       return;
     }
 
@@ -74,13 +83,13 @@ public class WordleOffHub : Hub
         await SendFullGameState(sessionId);
         break;
       case AddPlayerResult.PlayerNameExist:
-        await SendJoinError("The name's taken!");
+        await SendJoinError(ServerJoinError.NameTaken);
         break;
       case AddPlayerResult.PlayerMaxed:
-        await SendJoinError("The session is full. Try again later.");
+        await SendJoinError(ServerJoinError.SessionFull);
         break;
       case AddPlayerResult.GameAlreadyStarted:
-        await SendJoinError("The session has already begun. Try again later.");
+        await SendJoinError(ServerJoinError.SessionInProgress);
         break;
       default:
         // TODO: Send an error message
@@ -92,7 +101,7 @@ public class WordleOffHub : Hub
   {
     if (!gameSessions.ContainsKey(sessionId))
     {
-      await SendJoinError("The session does not exist.");
+      await SendJoinError(ServerJoinError.SessionNotFound);
       return;
     }
     await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
@@ -144,36 +153,54 @@ public class WordleOffHub : Hub
     if (sendToWholeGroup)
       await Clients.Group(sessionId).SendAsync("ServerPlayerData", gameSessions[sessionId].PlayerDataDictionary);
     else
-      await Clients.Caller.SendAsync("ServerPlayerData", gameSessions[sessionId].PlayerDataDictionary);    
+      await Clients.Caller.SendAsync("ServerPlayerData", gameSessions[sessionId].PlayerDataDictionary);
   }
 
-  public async Task SendJoinError(String message) => await Clients.Caller.SendAsync("ServerJoinFail", message);
+  public async Task SendJoinError(ServerJoinError error) => await Clients.Caller.SendAsync("ServerJoinError", error);
 
   #endregion
 
 
   #region Other Server Codes
 
-  public static String CreateNewSession()
+  public String CreateNewSession()
   {
-    String newSessionId = "";
-    do
-    {
-      List<String> segments = new();
-      for (Int32 i = 0; i < 3; ++i)
-        segments.Add(random.Next(100, 999).ToString("000"));
-      newSessionId = String.Join("-", segments);
-    } while (gameSessions.ContainsKey(newSessionId));
+    string newSessionId = GetNewGameSessionId();
     gameSessions.Add(newSessionId, new GameSession(newSessionId));
-    
-    // newSessionId = "111-111-111";
+
+    // //For Testing Only
+    // newSessionId = "123-123-123";
     // gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
     return newSessionId;
   }
 
-  public static void RemoveDisconnectedPlayers(Object? state)
+  private static String GetNewGameSessionId()
   {
-    Task.Run(async () => 
+    String newSessionId;
+    do
+    {
+      List<String> segments = new();
+      for (Int32 i = 0; i < 3; ++i)
+      {
+        // Three digit numbers w/ the same number in each digit are considered
+        // bad omen in some countries. Just roll the dice again.
+        String threeDigitNumber;
+        do
+        {
+          threeDigitNumber = random.Next(100, 1000).ToString("000");
+          if (!(threeDigitNumber[0] == threeDigitNumber[1] && threeDigitNumber[0] == threeDigitNumber[2]))
+            break;
+        } while (true);
+        segments.Add(threeDigitNumber);
+      }
+      newSessionId = String.Join("-", segments);
+    } while (gameSessions.ContainsKey(newSessionId));
+    return newSessionId;
+  }
+
+  public static void RemoveDisconnectedPlayers(Object? sender, System.Timers.ElapsedEventArgs e)
+  {
+    Task.Run(async () =>
     {
       foreach (var gameSession in gameSessions.Values)
         if (gameSession.RemoveDisconnectedPlayer())
@@ -182,11 +209,11 @@ public class WordleOffHub : Hub
             WordleOffHub newHub = new();
             newHub.Clients = latestClients;
             await newHub.SendFullGameState(gameSession.SessionId);
-          }            
+          }
     });
   }
 
-  public static void RemoveExpiredSessions(Object? state)
+  public static void RemoveExpiredSessions(Object? sender, System.Timers.ElapsedEventArgs e)
   {
     var expiredSessions = gameSessions.Where(x => x.Value.SessionExpired);
     foreach (var pair in expiredSessions)
@@ -197,7 +224,7 @@ public class WordleOffHub : Hub
   {
     if (!connectionIdToSessionId.ContainsKey(Context.ConnectionId))
       return;
-    
+
     String sessionId = connectionIdToSessionId[Context.ConnectionId];
     gameSessions[sessionId].DisconnectPlayer(Context.ConnectionId);
     connectionIdToSessionId.Remove(Context.ConnectionId);

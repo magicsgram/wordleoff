@@ -1,4 +1,4 @@
-using WordleOff.Shared;
+using WordleOff.Shared.Games;
 
 namespace WordleOff.Server.Hubs;
 
@@ -19,8 +19,6 @@ public enum EnterWordResult
 
 public class GameSession
 {
-  private static Random random = new();
-
   private const Int32 MaxPlayers = 4;
   private const Int32 GameSessionExpireMinutes = 1;
   private const Int32 ConnectionExpireSeconds = 5;
@@ -31,7 +29,7 @@ public class GameSession
   public String SessionId { get; set; } = "";
   public String CurrentAnswer { get { return pastAnswers.Last(); } }
   public Dictionary<String, PlayerData> PlayerDataDictionary { get; set; } = new();
-  private Queue<String> pastAnswers = new();
+  private readonly Queue<String> pastAnswers = new();
   public Boolean SessionExpired
   {
     get
@@ -40,8 +38,7 @@ public class GameSession
       TimeSpan noPlayerTimeSpan = now - (noPlayerSince ?? now);
       return TimeSpan.FromMinutes(GameSessionExpireMinutes) < noPlayerTimeSpan;
     }
-  }
-  
+  }  
 
   public GameSession(String sessionId)
   {
@@ -51,7 +48,7 @@ public class GameSession
 
   public void ResetGame()
   {
-    String newAnswer = "";
+    String newAnswer;
     do
     {
       newAnswer = WordsService.NextRandomAnswer();
@@ -101,7 +98,7 @@ public class GameSession
   public void DisconnectPlayer(String connectionId)
   {
     var pairs = PlayerDataDictionary.Where(pair => pair.Value.ConnectionId == connectionId);
-    if (pairs.Count() > 0)
+    if (pairs.Any())
     {
       var pair = pairs.First();
       pair.Value.DisconnectedDateTime = DateTime.Now;

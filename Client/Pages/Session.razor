@@ -2,7 +2,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.IO.Compression
 @using System.Text
-@using WordleOff.Shared
+@using WordleOff.Shared.Games
 @inject NavigationManager NavigationManager
 @inject IJSRuntime jsRuntime
 @implements IAsyncDisposable
@@ -11,30 +11,40 @@
   @searchSessionMessage
 </div>
 <div style=@($"display: {(!sessionInitialized && sessionFound? "" : "none")};") class="div-center">
-  <div class="div-margin-1">Your Name:</div>
-  <input class="div-margin-1" @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="20"/>
-  <button class="div-margin-1" @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
-  <div>
-    @joinErrorMessage
+  <div class="div-center div-center-vertical">
+    <div>
+      <div class="div-margin-1">Your Name:</div>
+      <input class="div-margin-1" @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="16" />
+      <button class="div-margin-1" @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
+    </div>
+    <div>
+      @joinErrorMessage
+    </div>
   </div>
 </div>
-<div
-  style=@($"display: {(sessionInitialized && sessionFound ? "" : "none")};")
-  class="game"
-  @onkeydown="@KeyDown"
-  tabindex="0"
-  @ref="gameDiv"
->
+<div style=@($"display: {(sessionInitialized && sessionFound ? "" : "none")};")
+     class="game"
+     @onkeydown="@KeyDown"
+     tabindex="0"
+     @ref="gameDiv">
   @RenderTitleLogo()
   @RenderSessionId()
   <div class="div-center">
     @RenderPlayerDataTable()
   </div>
-  <div class="div-center">
-    @submitError
-    @holdMessage
+  <div class="div-center div-center-vertical">
+    <div class="div-height-1">
+      @submitError
+      @holdMessage
+    </div>    
+    <div
+      style=@($"display: {(alreadyGuessedCorrectly || guessLimitReached ? "" : "none")};")
+      @onclick="NavgateToDictionaryDotCom"
+      class="dictionary-dot-com"
+    >
+      (See definition on dictionary.com)
+    </div>
   </div>
-  <br/>
   @RenderKeyboard()
   @RenderResetButton()
 </div>
@@ -43,7 +53,7 @@
   [Parameter]
   public String SessionId { get; set; } = "";
 
-  private String playerName = "";
+  private String playerName = "Kyle";
   private String joinErrorMessage = "";
   private String guess = "";
   private String submitError = "";
@@ -59,12 +69,11 @@
   private Boolean sessionFound = false;
   private HashSet<String> fullWords = new();
   private String? correctAnswer;
-
   private String resetButtonClass = "";
-
-  private String copyIdMessage = "Click ID Above to Copy URL";
+  private String copyIdMessage = "";
+  private System.Timers.Timer? timer;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
-  
+
   private ElementReference gameDiv;
 
   protected override async Task OnInitializedAsync()
@@ -77,11 +86,11 @@
     hubConnection.On<Byte[]>("ServerFullWordsCompressed", async (compressedFullWordsBytes) => await StoreFullWords(compressedFullWordsBytes));
     hubConnection.On<Dictionary<String, PlayerData>>("ServerPlayerData", async (newPlayerDataDictionary) => await UpdatePlayerData(newPlayerDataDictionary));
     hubConnection.On<String>("ServerCurrentAnswer", (correctAnswer) => UpdateCurrentAnswer(correctAnswer));
-    hubConnection.On<String>("ServerJoinFail", (message) => DisplayJoinFailMessage(message));
+    hubConnection.On<ServerJoinError>("ServerJoinError", (error) => DisplayJoinErrorMessage(error));
     hubConnection.On<Boolean>("ServerSessionFindResult", (result) => HandleSessionFindResult(result));
-    
+
     await hubConnection.StartAsync();
-    
+
     await hubConnection.InvokeAsync("ClientSearchSession", SessionId);
   }
 
@@ -100,7 +109,7 @@
       Byte[] decompressedBytes = output.ToArray();
       String fullWordsString = UTF8Encoding.UTF8.GetString(decompressedBytes);
       fullWords = fullWordsString.Split("\n").ToHashSet();
-    });    
+    });
   }
 
   public async Task UpdatePlayerData(Dictionary<String, PlayerData> newPlayerDataDictionary)
@@ -110,7 +119,7 @@
     if (hubConnection is not null)
     {
       playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
-      UpdateCanSubmitNewGuess();
+      UpdateGameStates();
     }
     UpdateResetButtonClass();
     StateHasChanged();
@@ -126,7 +135,11 @@
     StateHasChanged();
   }
 
-  public void DisplayJoinFailMessage(String message) => joinErrorMessage = message;
+  public void DisplayJoinErrorMessage(ServerJoinError error)
+  {
+    joinErrorMessage = ServerJoinErrorMessages.Maps[error];
+    StateHasChanged();
+  }
 
   #endregion
 
@@ -166,7 +179,6 @@
       }
       if (canSubmitNewGuess)
         await hubConnection.SendAsync("ClientSubmitGuess", playerName, guess.ToLower());
-      guess = "";
       submitError = "";
     }
   }
@@ -212,7 +224,24 @@
   public async Task CopyUrlToClipboard()
   {
     await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", $"https://www.wordleoff.com/game/{SessionId}");
-    copyIdMessage = "Click ID Above to Copy URL (Copied!!!)";
+    copyIdMessage = " (Copied!!!)";
+    timer = new(5000);
+    timer.AutoReset = false;
+    timer.Elapsed += async (sender, e) =>
+    {
+      await Task.Run(() =>
+      {
+        copyIdMessage = "";
+        StateHasChanged();
+      });
+    };
+    timer.Start();
+
+  }
+
+  public async Task NavgateToDictionaryDotCom()
+  {
+    await jsRuntime.InvokeAsync<Object>("open", $"https://www.dictionary.com/browse/{correctAnswer}", "_blank");
   }
 
   public Boolean IsConnected => hubConnection?.State == HubConnectionState.Connected;
@@ -228,18 +257,19 @@
       else if (playerDataDictionary.Values.All(x => x.PlayData.Count == 0))
         resetButtonClass = "guess-absent";
       else
-        resetButtonClass = "guess-present";          
+        resetButtonClass = "guess-present";
     }
     else
       resetButtonClass = "";
   }
 
-  public void UpdateCanSubmitNewGuess() // Check if anyone's lagging behind me
+  public void UpdateGameStates()
   {
     behindOthers = false;
     alreadyGuessedCorrectly = false;
     guessLimitReached = false;
     Boolean keyExist = false;
+    guess = "";
 
     keyExist = playerDataDictionary.ContainsKey(playerName);
     if (keyExist && correctAnswer is not null)
@@ -254,16 +284,16 @@
                 || x.PlayData.Count >= myGuessCount;
       });
       guessLimitReached = playerDataDictionary[playerName].PlayData.Count == 6;
-    }        
+    }
 
     if (!behindOthers && keyExist)
       holdMessage = "Wait until everyone submit their guesses.";
     else if (alreadyGuessedCorrectly)
-      holdMessage = "Correct!! Now you can see everyone else's guesses.";
+      holdMessage = $"{correctAnswer?.ToUpper()} is correct!{(playerDataDictionary.Count > 1 ? " Entering God Mode!" : "")}";
     else if (!alreadyGuessedCorrectly && guessLimitReached)
       holdMessage = $"The answer is {correctAnswer?.ToUpper() ?? ""}";
     else
-      holdMessage = "ㅤ";
+      holdMessage = "";
     canSubmitNewGuess = behindOthers && !alreadyGuessedCorrectly && !guessLimitReached;
     if (correctAnswer is not null)
       gameOver = playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer));
@@ -271,7 +301,10 @@
 
   private async Task NewGame()
   {
-    if (!await jsRuntime.InvokeAsync<Boolean>("confirm", "This will reset everyone's progress. Do you really want to start a new game?"))
+    if (!await jsRuntime.InvokeAsync<Boolean>(
+      "confirm",
+      "You'll lose everyone's progress and start a new game. Do you really want to reset?"
+    ))
       return;
     if (hubConnection is not null)
       await hubConnection.SendAsync("ClientResetCurrentSession", SessionId);
@@ -325,17 +358,18 @@
         <div class="session-id-row" @onclick="CopyUrlToClipboard">
           @foreach (Char c in SessionId)
           {
-            <div class="guess-tile guess-tile-small guess-absent">@c</div>
+            <div class="guess-tile guess-tile-session-id guess-absent">@c</div>
           }
         </div>
-        <div>@copyIdMessage</div>
+        <div class="copy-id"><span>Click ID Above to Copy URL</span><span>@copyIdMessage</span></div>
       </div>
     };
   }
 
   private RenderFragment RenderPlayerDataTable()
   {
-    return __builder => {
+    return __builder =>
+    {
       if (correctAnswer is null)
       {
         <div></div>
@@ -368,35 +402,35 @@
               if (isCurrentPlayerLocal)
                 emptyRowOffset = 1;
               String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
-              <td class=@($"{(playerName == currentPlayerName && orderedList.Count > 1 ? "my-board" : "")}")>
-                <div class="play-container">
-                  <div>@($"{currentPlayerName}{youIndicator}")</div>
-                  <div class="guess-board">
-                    @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
-                    {
-                      String currentGuess = currentPlayerData.PlayData[j];
-                      @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
-                        @RenderTempGuessRow(currentPlayerName, currentGuess)
-                      else
-                        @RenderGuessRow(currentGuess, !isCurrentPlayerLocal && !godMode)
-                    }
-                    @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
-                    {
-                      @RenderGuessingRow()
-                    }
-                    @for (Int32 j = currentPlayerData.PlayData.Count + emptyRowOffset; j < 6; ++j)
-                    {
-                      @RenderEmptyRow()
-                    }
-                  </div>
-                </div>              
+              String borderClass = orderedList.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
+            <td class=@(borderClass)>
+              <div class="play-container">
+                <div>@($"{currentPlayerName}{youIndicator}")</div>
+                <div class="guess-board">
+                  @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
+                  {
+                    String currentGuess = currentPlayerData.PlayData[j];
+                    @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
+                      @RenderTempGuessRow(currentPlayerName, currentGuess)
+                    else
+                      @RenderGuessRow(currentGuess, !isCurrentPlayerLocal && !godMode)
+                  }
+                  @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
+                  {
+                    @RenderGuessingRow()
+                  }
+                  @for (Int32 j = currentPlayerData.PlayData.Count + emptyRowOffset; j < 6; ++j)
+                  {
+                    @RenderEmptyRow()
+                  }
+                </div>
+              </div>
               </td>
             }
           </tr>
         </table>
       }
     };
-    
   }
 
   private RenderFragment RenderGuessRow(String currentGuess, Boolean hideLetters)
@@ -457,7 +491,8 @@
 
   private RenderFragment RenderTempGuessRow(String currentPlayerName, String currentGuess)
   {
-    return __builder => {
+    return __builder =>
+    {
       <div class="guess-row">
         @if (playerName == currentPlayerName)
         {
@@ -474,7 +509,7 @@
           }
         }
       </div>
-    };    
+    };
   }
 
   private RenderFragment RenderEmptyRow()
@@ -535,7 +570,7 @@
         Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
         Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
         Boolean includeLast = (canSubmitNewGuess || (alreadyGuessedCorrectly && allPlayersAtMaxGuesses) || gameOver);
-        
+
         Int32 playDataLimit = playData.Count - (includeLast ? 0 : 1);
         for (Int32 i = 0; i < playDataLimit; ++i)
         {
@@ -556,7 +591,8 @@
         {
           letterTileColors.Add(
             pair.Key,
-            pair.Value switch {
+            pair.Value switch
+            {
               -1 => "guess-guessing",
               0 => "guess-absent",
               1 => "guess-present",
@@ -566,7 +602,7 @@
           );
         }
 
-        <div class="div-center">
+        <div class="div-center div-margin-top">
           <div class="keyboard-board">
             <div class="div-center div-center-vertical">
               <div class="keyboard-row">
@@ -596,10 +632,9 @@
               </div>
               <div class="keyboard-row">
                 <div
-                  class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
-                  @onclick="@(e => HandleKey("Enter"))"
-                >
-                  Enter
+                  class=@($"guess-tile guess-tile-keyboard-small guess-guessing")
+                  @onclick="@(e => HandleKey("Enter"))">
+                    Enter
                 </div>
                 @RenderKeyboardChar(letterTileColors, 'z')
                 @RenderKeyboardChar(letterTileColors, 'x')
@@ -609,10 +644,9 @@
                 @RenderKeyboardChar(letterTileColors, 'n')
                 @RenderKeyboardChar(letterTileColors, 'm')
                 <div
-                  class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
-                  @onclick="@(e => HandleKey("Backspace"))"
-                >
-                  ⌫
+                  class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-200 guess-guessing")
+                  @onclick="@(e => HandleKey("Backspace"))">
+                    ⌫
                 </div>
               </div>
             </div>
@@ -624,15 +658,14 @@
 
   private RenderFragment RenderKeyboardChar(Dictionary<Char, String> letterTileColors, Char renderChar)
   {
-    return __builder => {
-      <div
-        class=@($"guess-tile guess-tile-keyboard {letterTileColors[renderChar]}")
-        @onclick="@(e => HandleKey(renderChar.ToString()))"
-      >
+    return __builder =>
+    {
+      <div class=@($"guess-tile guess-tile-keyboard {letterTileColors[renderChar]}")
+       @onclick="@(e => HandleKey(renderChar.ToString()))">
         @renderChar
       </div>
     };
-  } 
+  }
 
   private RenderFragment RenderResetButton()
   {
