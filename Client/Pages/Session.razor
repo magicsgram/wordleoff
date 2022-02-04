@@ -7,8 +7,13 @@
 @inject IJSRuntime jsRuntime
 @implements IAsyncDisposable
 
-<div style=@($"display: {(sessionFound ? "none" : "")};") class="div-center">
+<div style=@($"display: {(sessionFound ? "none" : "")};") class="div-center div-center-vertical">
   @searchSessionMessage
+  <hr />
+  <div>
+      Go to <span class="wordleoff-dot-com" @onclick="NavigateToNewGameScreen">https://www.wordleoff.com/</span>
+      <br />to start a new session
+  </div>
 </div>
 <div style=@($"display: {(!sessionInitialized && sessionFound? "" : "none")};") class="div-center">
   <div class="div-center div-center-vertical">
@@ -19,6 +24,11 @@
     </div>
     <div>
       @joinErrorMessage
+    </div>
+    <hr />
+    <div>
+      Go to <span class="wordleoff-dot-com" @onclick="NavigateToNewGameScreen">https://www.wordleoff.com/</span>
+      <br />to start a new session
     </div>
   </div>
 </div>
@@ -32,7 +42,7 @@
       @RenderTitleLogo()
       @RenderSessionId()
     </div>
-    <div class="div-center player-data">
+    <div class="div-center player-data" style=@boardZoomString)>
       @RenderPlayerDataTable()
     </div>
     <div>
@@ -43,7 +53,7 @@
         </div>    
         <div
           style=@($"display: {((alreadyGuessedCorrectly || guessLimitReached) && allPlayersAtMaxGuesses ? "" : "none")};")
-          @onclick="NavgateToDictionaryDotCom"
+          @onclick="NavigateToDictionaryDotCom"
           class="dictionary-dot-com"
         >
           (See definition on dictionary.com)
@@ -80,6 +90,8 @@
   private String? correctAnswer;
   private String resetButtonClass = "";
   private String copyIdMessage = "";
+  private String boardZoomString = "";
+  private String keyboardScaleString = "";
   private System.Timers.Timer? timer;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
 
@@ -87,6 +99,9 @@
 
   protected override async Task OnInitializedAsync()
   {
+    BrowserResizeService.OnResize += BrowserResizeHandler;
+    await jsRuntime.InvokeVoidAsync("browserResize.registerResizeCallback");
+
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
       .Build();
@@ -135,7 +150,7 @@
       UpdateGameStates();
     }
     UpdateResetButtonClass();
-    StateHasChanged();
+    await BrowserResizeHandler();
     await jsRuntime.InvokeVoidAsync("setFocusToElement", gameDiv);
   }
 
@@ -235,6 +250,56 @@
     }
   }
 
+  public async Task BrowserResizeHandler()
+  {
+    //Single logoX = 350;
+    Single logoY = 86;
+    Single boardX = 365;
+    Single boardY = 456;
+    Single keyboardX = 420;
+    Single keyboardY = 240;
+
+    Single newWidth = await jsRuntime.InvokeAsync<Single>("browserResize.getInnerWidth");
+    Single newHeight = await jsRuntime.InvokeAsync<Single>("browserResize.getInnerHeight");
+
+    Single currentBoardX = boardX * playerDataDictionary.Count;
+    Single currentBoardY = boardY; // This may change when I implement flex box layout
+
+    Single allowedHeight = newHeight - (logoY + keyboardY); // WindowHeight - (Logo + Keyboard)
+    if (allowedHeight < keyboardY)
+      allowedHeight = keyboardY; // Minimum height
+    Single allowedWidth = newWidth;
+
+    if (allowedWidth >= Math.Max(currentBoardX, keyboardX) && allowedHeight >= boardY)
+    {
+      boardZoomString = "";
+      keyboardScaleString  = "";
+    }
+    else
+    {
+      // Adjust Size for Board
+      if (allowedWidth < currentBoardX || allowedHeight < boardY)
+      {
+        Single allowedRatio = allowedWidth / allowedHeight;
+        Single boardRatio = currentBoardX / boardY;
+
+        Single scaleFactor = 1.0f;
+        if (allowedRatio > boardRatio) // Scale based on height
+          scaleFactor = allowedHeight / boardY;
+        else // Scale based on width
+          scaleFactor = allowedWidth / currentBoardX;
+        boardZoomString = $"zoom: {scaleFactor}; -moz-transform: scale({scaleFactor});";
+      }
+
+      if (allowedWidth < keyboardX)
+      {
+        Single scaleFactor = allowedWidth / keyboardX;
+        keyboardScaleString = $"transform: scale({scaleFactor}, 1.0);";
+      }
+    }
+    StateHasChanged();
+  }
+
   public async Task CopyUrlToClipboard()
   {
     await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", $"https://www.wordleoff.com/game/{SessionId}");
@@ -250,13 +315,14 @@
       });
     };
     timer.Start();
-
   }
 
-  public async Task NavgateToDictionaryDotCom()
+  public async Task NavigateToDictionaryDotCom()
   {
     await jsRuntime.InvokeAsync<Object>("open", $"https://www.dictionary.com/browse/{correctAnswer}", "_blank");
   }
+
+  public void NavigateToNewGameScreen() => NavigationManager.NavigateTo("/");
 
   public Boolean IsConnected => hubConnection?.State == HubConnectionState.Connected;
 
@@ -405,28 +471,28 @@
                 emptyRowOffset = 1;
               String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
               String borderClass = orderedList.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
-            <td>
-              <div class=@($"play-container {borderClass}")>
-                <div>@($"{currentPlayerName}{youIndicator}")</div>
-                <div class="guess-board">
-                  @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
-                  {
-                    String currentGuess = currentPlayerData.PlayData[j];
-                    @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
-                      @RenderTempGuessRow(currentPlayerName, currentGuess)
-                    else
-                      @RenderGuessRow(currentGuess, !isCurrentPlayerLocal && !godMode)
-                  }
-                  @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
-                  {
-                    @RenderGuessingRow()
-                  }
-                  @for (Int32 j = currentPlayerData.PlayData.Count + emptyRowOffset; j < 6; ++j)
-                  {
-                    @RenderEmptyRow()
-                  }
+              <td>
+                <div class=@($"play-container {borderClass}")>
+                  <div>@($"{currentPlayerName}{youIndicator}")</div>
+                  <div class="guess-board">
+                    @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
+                    {
+                      String currentGuess = currentPlayerData.PlayData[j];
+                      @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
+                        @RenderTempGuessRow(currentPlayerName, currentGuess)
+                      else
+                        @RenderGuessRow(currentGuess, !isCurrentPlayerLocal && !godMode)
+                    }
+                    @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
+                    {
+                      @RenderGuessingRow()
+                    }
+                    @for (Int32 j = currentPlayerData.PlayData.Count + emptyRowOffset; j < 6; ++j)
+                    {
+                      @RenderEmptyRow()
+                    }
+                  </div>
                 </div>
-              </div>
               </td>
             }
           </tr>
@@ -606,7 +672,7 @@
 
         <div class="div-center div-margin-top">
           <div class="keyboard-board">
-            <div class="div-center div-center-vertical">
+            <div class="div-center div-center-vertical" style=@keyboardScaleString>
               <div class="keyboard-row">
                 @RenderKeyboardChar(letterTileColors, 'q')
                 @RenderKeyboardChar(letterTileColors, 'w')

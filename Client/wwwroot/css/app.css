@@ -74,6 +74,7 @@ body {
   color: #dddddd;
   height: 100%;
   overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 html {
