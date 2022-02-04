@@ -7,14 +7,13 @@ td, th {
   text-align: center;
   padding: 6px;
   padding-top: 2px;
-  padding-bottom: 2px;
 }
 
 .my-board {
   border: 1px solid #444;
 }
 
-.game {
+.screen {
   outline: none;
   height: 95vh;
 }
@@ -29,6 +28,7 @@ td, th {
 .dictionary-dot-com {
   font-size: 0.7rem;
   text-decoration: underline;
+  cursor: pointer;
 }
 
 .guess-board {
@@ -50,6 +50,7 @@ td, th {
   grid-gap: 2px;
   width: 150px;
   height: 20px;
+  cursor: pointer;
 }
 
 .keyboard-board {
@@ -76,6 +77,7 @@ td, th {
   height: 14px;
   margin-top: 2px;
   margin-bottom: 4px;
+  cursor: pointer;
 }
 
 .copy-id {
@@ -96,8 +98,9 @@ td, th {
   box-sizing: border-box;
   text-transform: uppercase;
   background-color: var(--tile-color);
+  border-radius: 4px;
 }
- 
+
 .guess-tile::before {
   content: '';
   display: inline-block;
@@ -129,11 +132,13 @@ td, th {
 .guess-tile-small {
   font-size: 1.2rem;
   line-height: 1.2rem;
+  border-radius: 2px;
 }
 
 .guess-tile-session-id {
   font-size: 1.1rem;
   line-height: 1.1rem;
+  border-radius: 2px;
 }
 
 .guess-present {
