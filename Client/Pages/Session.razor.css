@@ -72,6 +72,7 @@ table {
 
 .keyboard-board {
   padding: 4px;
+  padding-top: 2px;
   margin-bottom: 20px;
 }
 
@@ -191,10 +192,6 @@ table {
 
 .div-height-1 {
   height: 1.0rem
-}
-
-.div-margin-top {
-  margin-top: 4px;
 }
 
 .div-center-vertical {

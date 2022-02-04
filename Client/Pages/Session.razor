@@ -52,11 +52,11 @@
           @holdMessage
         </div>    
         <div
-          style=@($"display: {((alreadyGuessedCorrectly || guessLimitReached) && allPlayersAtMaxGuesses ? "" : "none")};")
+          style=@((alreadyGuessedCorrectly || guessLimitReached) && allPlayersAtMaxGuesses ? "" : "visibility: hidden;")
           @onclick="NavigateToDictionaryDotCom"
           class="dictionary-dot-com"
         >
-          (See definition on dictionary.com in a new window)
+          (See definition on dictionary.com in a new window.)
         </div>
       </div>
       @RenderKeyboard()
@@ -670,7 +670,7 @@
           );
         }
 
-        <div class="div-center div-margin-top">
+        <div class="div-center">
           <div class="keyboard-board">
             <div class="div-center div-center-vertical" style=@keyboardScaleString>
               <div class="keyboard-row">
