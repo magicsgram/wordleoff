@@ -38,7 +38,7 @@
       @holdMessage
     </div>    
     <div
-      style=@($"display: {(alreadyGuessedCorrectly || guessLimitReached ? "" : "none")};")
+      style=@($"display: {((alreadyGuessedCorrectly || guessLimitReached) && allPlayersAtMaxGuesses ? "" : "none")};")
       @onclick="NavgateToDictionaryDotCom"
       class="dictionary-dot-com"
     >
@@ -64,6 +64,8 @@
   private Boolean behindOthers = false;
   private Boolean alreadyGuessedCorrectly = false;
   private Boolean guessLimitReached = false;
+  Int32 maxGuessesAmongPlayers = 0;
+  Boolean allPlayersAtMaxGuesses = false;
   private Boolean gameOver = false;
   private Boolean sessionInitialized = false;
   private Boolean sessionFound = false;
@@ -115,6 +117,10 @@
   public async Task UpdatePlayerData(Dictionary<String, PlayerData> newPlayerDataDictionary)
   {
     sessionInitialized = true;
+    if (playerDataDictionary.ContainsKey(playerName) && newPlayerDataDictionary.ContainsKey(playerName))
+      if (playerDataDictionary[playerName].PlayData.Count < newPlayerDataDictionary[playerName].PlayData.Count)
+        guess = "";
+
     playerDataDictionary = newPlayerDataDictionary;
     if (hubConnection is not null)
     {
@@ -206,6 +212,7 @@
       if (key == "Backspace" && guess.Length > 0)
       {
         guess = guess.Remove(guess.Length - 1);
+        submitError = "";
       }
       else if (key == "Enter")
       {
@@ -269,14 +276,12 @@
     alreadyGuessedCorrectly = false;
     guessLimitReached = false;
     Boolean keyExist = false;
-    guess = "";
 
     keyExist = playerDataDictionary.ContainsKey(playerName);
     if (keyExist && correctAnswer is not null)
     {
       if (playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer))
         alreadyGuessedCorrectly = true;
-
       Int32 myGuessCount = playerDataDictionary[playerName].PlayData.Count;
       behindOthers = playerDataDictionary.Values.All((x) =>
       {
@@ -284,19 +289,21 @@
                 || x.PlayData.Count >= myGuessCount;
       });
       guessLimitReached = playerDataDictionary[playerName].PlayData.Count == 6;
-    }
+
+      maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
+      allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
+      gameOver = playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer));
+    }    
 
     if (!behindOthers && keyExist)
-      holdMessage = "Wait until everyone submit their guesses.";
+      holdMessage = "Wait until all players submit their guesses.";
     else if (alreadyGuessedCorrectly)
-      holdMessage = $"{correctAnswer?.ToUpper()} is correct!{(playerDataDictionary.Count > 1 ? " Entering God Mode!" : "")}";
+      holdMessage = $"{correctAnswer?.ToUpper()} is correct!{(playerDataDictionary.Count > 1 && !gameOver ? " Entering God Mode!" : "")}";
     else if (!alreadyGuessedCorrectly && guessLimitReached)
       holdMessage = $"The answer is {correctAnswer?.ToUpper() ?? ""}";
     else
       holdMessage = "";
     canSubmitNewGuess = behindOthers && !alreadyGuessedCorrectly && !guessLimitReached;
-    if (correctAnswer is not null)
-      gameOver = playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer));
   }
 
   private async Task NewGame()
@@ -368,8 +375,6 @@
       {
         if (playerDataDictionary.Count == 0)
           return;
-        Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
-        Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
         Boolean godMode = playerDataDictionary.ContainsKey(playerName) ? (playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer) && allPlayersAtMaxGuesses) || gameOver : false;
 
         Int32 maxIndex = playerDataDictionary.Count == 0 ? -1 : playerDataDictionary.Max(x => x.Value.Index);

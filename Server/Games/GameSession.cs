@@ -40,10 +40,12 @@ public class GameSession
     }
   }  
 
-  public GameSession(String sessionId)
+  public GameSession(String sessionId, String? answer = null)
   {
     SessionId = sessionId;
-    pastAnswers.Enqueue(WordsService.NextRandomAnswer());
+    if (answer is null)
+      answer = WordsService.NextRandomAnswer();
+    pastAnswers.Enqueue(answer);
   }
 
   public void ResetGame()
