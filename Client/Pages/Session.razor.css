@@ -3,14 +3,9 @@ table {
   border-collapse: collapse;
 }
 
-td, th {
-  text-align: center;
-  padding: 6px;
-  padding-top: 2px;
-}
-
 .my-board {
   border: 1px solid #444;
+  border-radius: 4px;
 }
 
 .screen {
@@ -36,7 +31,9 @@ td, th {
   display: inline-block;
   align-content: center;
   justify-content: center;
-  flex-grow: 1;
+  text-align: center;
+  padding: 6px;
+  padding-top: 2px;
 }
 
 .dictionary-dot-com {

@@ -405,8 +405,8 @@
                 emptyRowOffset = 1;
               String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
               String borderClass = orderedList.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
-            <td class=@(borderClass)>
-              <div class="play-container">
+            <td>
+              <div class=@($"play-container {borderClass}")>
                 <div>@($"{currentPlayerName}{youIndicator}")</div>
                 <div class="guess-board">
                   @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
