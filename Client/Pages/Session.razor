@@ -22,32 +22,39 @@
     </div>
   </div>
 </div>
-<div style=@($"display: {(sessionInitialized && sessionFound ? "" : "none")};")
-     class="screen"
+<div class="screen">
+  <div style=@($"display: {(sessionInitialized && sessionFound ? "" : "none")};")
+     class="page"
      @onkeydown="@KeyDown"
      tabindex="0"
      @ref="gameDiv">
-  @RenderTitleLogo()
-  @RenderSessionId()
-  <div class="div-center">
-    @RenderPlayerDataTable()
-  </div>
-  <div class="div-center div-center-vertical">
-    <div class="div-height-1">
-      @submitError
-      @holdMessage
-    </div>    
-    <div
-      style=@($"display: {((alreadyGuessedCorrectly || guessLimitReached) && allPlayersAtMaxGuesses ? "" : "none")};")
-      @onclick="NavgateToDictionaryDotCom"
-      class="dictionary-dot-com"
-    >
-      (See definition on dictionary.com)
+    <div>
+      @RenderTitleLogo()
+      @RenderSessionId()
+    </div>
+    <div class="div-center player-data">
+      @RenderPlayerDataTable()
+    </div>
+    <div>
+      <div class="div-center div-center-vertical">
+        <div class="div-height-1">
+          @submitError
+          @holdMessage
+        </div>    
+        <div
+          style=@($"display: {((alreadyGuessedCorrectly || guessLimitReached) && allPlayersAtMaxGuesses ? "" : "none")};")
+          @onclick="NavgateToDictionaryDotCom"
+          class="dictionary-dot-com"
+        >
+          (See definition on dictionary.com)
+        </div>
+      </div>
+      @RenderKeyboard()
+      @RenderResetButton()
     </div>
   </div>
-  @RenderKeyboard()
-  @RenderResetButton()
 </div>
+
 
 @code {
   [Parameter]
@@ -627,7 +634,7 @@
               </div>
               <div class="keyboard-row">
                 <div
-                  class=@($"guess-tile guess-tile-keyboard-small guess-guessing")
+                  class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
                   @onclick="@(e => HandleKey("Enter"))">
                     Enter
                 </div>
@@ -639,7 +646,7 @@
                 @RenderKeyboardChar(letterTileColors, 'n')
                 @RenderKeyboardChar(letterTileColors, 'm')
                 <div
-                  class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-200 guess-guessing")
+                  class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
                   @onclick="@(e => HandleKey("Backspace"))">
                     ⌫
                 </div>

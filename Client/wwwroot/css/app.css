@@ -20,6 +20,8 @@ a, .btn-link {
 
 .content {
   padding-top: 10px;
+  padding-bottom: 10px;
+  height: 100%;
 }
 
 .valid.modified:not([type=checkbox]) {
@@ -63,7 +65,17 @@ a, .btn-link {
   content: "An error has occurred."
 }
 
+.app {
+  height: 100%;
+}
+
 body {
 	background-color: #111111;
   color: #dddddd;
+  height: 100%;
+  overflow-y: hidden;
+}
+
+html {
+  height: 100%;
 }

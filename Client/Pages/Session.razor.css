@@ -14,8 +14,22 @@ td, th {
 }
 
 .screen {
+  align-items: center;
+  justify-content: center;
+  display: flex;
+  height: 100%;
+}
+
+.page {
   outline: none;
-  height: 95vh;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 500px;
+}
+
+.player-data {
+  flex-grow: 1;
 }
 
 .play-container {
@@ -49,7 +63,6 @@ td, th {
   grid-template-columns: repeat(5, 1.5fr);
   grid-gap: 2px;
   width: 150px;
-  height: 20px;
   cursor: pointer;
 }
 
@@ -115,8 +128,8 @@ td, th {
 }
 
 .guess-tile-keyboard-small {
-  font-size: 0.6rem;
-  line-height: 0.6rem;
+  font-size: 1.0rem;
+  line-height: 1.0rem;
   margin: 2px;
   border-radius: 4px;
 }
@@ -125,8 +138,8 @@ td, th {
   width: 50%;
 }
 
-.guess-tiles-offset-200 {
-  width: 200%;
+.guess-tiles-offset-150 {
+  width: 150%;
 }
 
 .guess-tile-small {
