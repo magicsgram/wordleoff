@@ -46,7 +46,7 @@
     <div class="div-center player-data" style=@boardZoomString>
       @RenderPlayerDataTable()
     </div>
-    <div style=@keyboardZoomString>
+    <div>
       <div class="div-center div-center-vertical">
         <div class="div-height-1">
           @submitError
@@ -65,7 +65,6 @@
     </div>
   </div>
 </div>
-
 
 @code {
   [Parameter]
@@ -95,7 +94,6 @@
   private String copyIdMessage = "";
   private String boardZoomString = "";
   private String keyboardScaleString = "";
-  private String keyboardZoomString = "";
   private Int32 tableX = 0;
   private Int32 tableY = 0;
   private System.Timers.Timer? timer;
@@ -111,7 +109,7 @@
       if (spectator == "on")
         spectatorMode = true;
 
-    BrowserResizeService.OnResize += BrowserResizeHandler;
+    BrowserResizeService.OnResize += HandleBrowserResize;
     await jsRuntime.InvokeVoidAsync("browserResize.registerResizeCallback");
 
     hubConnection = new HubConnectionBuilder()
@@ -163,7 +161,7 @@
       UpdateGameStates();
     }
     UpdateResetButtonClass();
-    await BrowserResizeHandler();
+    await HandleBrowserResize();
     await jsRuntime.InvokeVoidAsync("setFocusToElement", gameDiv);
   }
 
@@ -267,59 +265,72 @@
     }
   }
 
-  public async Task BrowserResizeHandler()
+  public async Task HandleBrowserResize()
   {
     //Single logoX = 350;
     Single logoY = 86;
     Single boardX = 365;
     Single boardY = 456;
-    Single keyboardX = 520;
+    Single keyboardX = 450;
     Single keyboardY = 280;
 
     Single newWidth = await jsRuntime.InvokeAsync<Single>("browserResize.getInnerWidth");
     Single newHeight = await jsRuntime.InvokeAsync<Single>("browserResize.getInnerHeight");
-    Boolean bulkUpKeyboard = (newHeight >= 900 && newWidth >= 700);
-    if (bulkUpKeyboard)
-      keyboardY *= 1.2f;
-
-    Single currentBoardX = boardX * playerDataDictionary.Count;
-    Single currentBoardY = boardY; // This may change when I implement flex box layout
 
     Single allowedHeight = newHeight - (logoY + keyboardY); // WindowHeight - (Logo + Keyboard)
     if (allowedHeight < keyboardY)
       allowedHeight = keyboardY; // Minimum height
     Single allowedWidth = newWidth;
 
-    keyboardZoomString = "";
     keyboardScaleString = "";
     boardZoomString = "";
-    if (allowedWidth >= Math.Max(currentBoardX, keyboardX) && allowedHeight >= boardY)
+
+    Single scaleFactor = 0.0f;
+    tableX = 0;
+    tableY = 0;
+    for (Int32 i = 1; i <= playerDataDictionary.Count; ++i)
     {
-      keyboardZoomString = "";
-      if (bulkUpKeyboard)
-        keyboardZoomString = "zoom: 1.2;";
-    }
-    else
-    {
+      Int32 dimX = i;
+      Int32 dimY = playerDataDictionary.Count / dimX + (playerDataDictionary.Count % dimX > 0 ? 1 : 0);
+
+      Single currentBoardX = boardX * dimX;
+      Single currentBoardY = boardY * dimY;
+
       // Adjust Size for Board
-      if (allowedWidth < currentBoardX || allowedHeight < boardY)
+      if (allowedWidth < currentBoardX || allowedHeight < currentBoardY)
       {
         Single allowedRatio = allowedWidth / allowedHeight;
-        Single boardRatio = currentBoardX / boardY;
+        Single boardRatio = currentBoardX / currentBoardY;
 
-        Single scaleFactor = 1.0f;
+        Single newScaleFactor;
         if (allowedRatio > boardRatio) // Scale based on height
-          scaleFactor = allowedHeight / boardY;
+          newScaleFactor = allowedHeight / currentBoardY;
         else // Scale based on width
-          scaleFactor = allowedWidth / currentBoardX;
-        boardZoomString = $"zoom: {scaleFactor}; -moz-transform: scale({scaleFactor});";
+          newScaleFactor = allowedWidth / currentBoardX;
+
+        if (scaleFactor < newScaleFactor)
+        {
+          scaleFactor = newScaleFactor;
+          tableX = dimX;
+          tableY = dimY;
+        }
       }
-      
-      if (allowedWidth < keyboardX)
+      else
       {
-        Single scaleX = allowedWidth / keyboardX;
-        keyboardScaleString = $"transform: scale({scaleX}, 1.0);";
+        if (scaleFactor < 1.0f)
+        {
+          scaleFactor = 1.0f;
+          tableX = dimX;
+          tableY = dimY;
+        }
       }
+    }
+    boardZoomString = $"zoom: {scaleFactor}; -moz-transform: scale({scaleFactor});";
+
+    if (allowedWidth < keyboardX)
+    {
+      Single scaleX = allowedWidth / keyboardX;
+      keyboardScaleString = $"transform: scale({scaleX}, 1.0);";
     }
     StateHasChanged();
   }
@@ -460,7 +471,7 @@
           }
         </div>
         <div class="copy-id"><span>Click ID Above to Copy URL</span><span>@copyIdMessage</span></div>
-      </div>
+    </div>
     };
   }
 
@@ -477,52 +488,51 @@
         if (playerDataDictionary.Count == 0)
           return;
 
-        Int32 maxIndex = playerDataDictionary.Count == 0 ? -1 : playerDataDictionary.Max(x => x.Value.Index);
-        List<KeyValuePair<String, PlayerData>?> orderedList = new();
-        for (Int32 i = 1; i <= maxIndex; ++i)
-        {
-          var matchingPlayers = playerDataDictionary.Where(x => x.Value.Index == i);
-          if (matchingPlayers.Count() > 0)
-            orderedList.Add(matchingPlayers.First());
-        }
+        Queue<KeyValuePair<String, PlayerData>> playerDataQueue = new(playerDataDictionary.OrderBy(x => x.Value.Index));
         <table>
-          <tr>
-            @for (Int32 i = 0; i < orderedList.Count; ++i)
-            {
-              var pairValue = orderedList[i]!.Value;
-              var currentPlayerName = pairValue.Key;
-              var currentPlayerData = pairValue.Value;
-              Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
-              Int32 emptyRowOffset = 0;
-              if (isCurrentPlayerLocal)
-                emptyRowOffset = 1;
-              String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
-              String borderClass = orderedList.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
-              <td>
-                <div class=@($"play-container {borderClass}")>
-                  <div>@($"{currentPlayerName}{youIndicator}")</div>
-                  <div class="guess-board">
-                    @for (Int32 j = 0; j < currentPlayerData.PlayData.Count; ++j)
-                    {
-                      String currentGuess = currentPlayerData.PlayData[j];
-                      @if (j == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
-                        @RenderTempGuessRow(currentPlayerName, currentGuess)
-                      else
-                        @RenderGuessRow(currentGuess, !isCurrentPlayerLocal && !godMode)
-                    }
-                    @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
-                    {
-                      @RenderGuessingRow()
-                    }
-                    @for (Int32 j = currentPlayerData.PlayData.Count + emptyRowOffset; j < 6; ++j)
-                    {
-                      @RenderEmptyRow()
-                    }
-                  </div>
-                </div>
-              </td>
-            }
-          </tr>
+          @for (Int32 j = 0; j < tableY; ++j)
+          {
+            <tr>
+              @for (Int32 i = 0; i < tableX; ++i)
+              {
+                if (playerDataQueue.Count > 0)
+                {
+                  var pairValue = playerDataQueue.Dequeue();
+                  var currentPlayerName = pairValue.Key;
+                  var currentPlayerData = pairValue.Value;
+                  Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
+                  Int32 emptyRowOffset = 0;
+                  if (isCurrentPlayerLocal)
+                    emptyRowOffset = 1;
+                  String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
+                  String borderClass = playerDataDictionary.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
+                  <td>
+                    <div class=@($"play-container {borderClass}")>
+                      <div>@($"{currentPlayerName}{youIndicator}")</div>
+                      <div class="guess-board">
+                        @for (Int32 x = 0; x < currentPlayerData.PlayData.Count; ++x)
+                        {
+                          String currentGuess = currentPlayerData.PlayData[x];
+                          @if (x == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
+                            @RenderTempGuessRow(currentPlayerName, currentGuess)
+                          else
+                            @RenderGuessRow(currentGuess, !isCurrentPlayerLocal && !godMode)
+                        }
+                        @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
+                        {
+                          @RenderGuessingRow()
+                        }
+                        @for (Int32 x = currentPlayerData.PlayData.Count + emptyRowOffset; x < 6; ++x)
+                        {
+                          @RenderEmptyRow()
+                        }
+                      </div>
+                    </div>
+                  </td>
+                }
+              }
+            </tr>
+          }
         </table>
       }
     };

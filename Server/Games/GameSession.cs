@@ -20,7 +20,7 @@ public enum EnterWordResult
 
 public class GameSession
 {
-  private const Int32 MaxPlayers = 4;
+  private const Int32 MaxPlayers = 9;
   private const Int32 GameSessionExpireMinutes = 1;
   private const Int32 ConnectionExpireSeconds = 5;
   private const Int32 PastAnswersMaxSize = 100;
