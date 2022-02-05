@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using System.IO.Compression
 @using System.Text
+@using Microsoft.AspNetCore.WebUtilities
 @using WordleOff.Shared.Games
 @inject NavigationManager NavigationManager
 @inject IJSRuntime jsRuntime
@@ -42,21 +43,21 @@
       @RenderTitleLogo()
       @RenderSessionId()
     </div>
-    <div class="div-center player-data" style=@boardZoomString)>
+    <div class="div-center player-data" style=@boardZoomString>
       @RenderPlayerDataTable()
     </div>
-    <div>
+    <div style=@keyboardZoomString>
       <div class="div-center div-center-vertical">
         <div class="div-height-1">
           @submitError
           @holdMessage
-        </div>    
+        </div>
         <div
-          style=@((alreadyGuessedCorrectly || guessLimitReached) && allPlayersAtMaxGuesses ? "" : "visibility: hidden;")
+          style=@(godMode ? "" : "visibility: hidden;")
           @onclick="NavigateToDictionaryDotCom"
           class="dictionary-dot-com"
         >
-          (See definition on dictionary.com in a new window.)
+          See definition on dictionary.com (new tab↗)
         </div>
       </div>
       @RenderKeyboard()
@@ -81,17 +82,22 @@
   private Boolean behindOthers = false;
   private Boolean alreadyGuessedCorrectly = false;
   private Boolean guessLimitReached = false;
+  private Boolean spectatorMode = false;
   Int32 maxGuessesAmongPlayers = 0;
   Boolean allPlayersAtMaxGuesses = false;
   private Boolean gameOver = false;
   private Boolean sessionInitialized = false;
   private Boolean sessionFound = false;
+  private Boolean godMode = false;
   private HashSet<String> fullWords = new();
   private String? correctAnswer;
   private String resetButtonClass = "";
   private String copyIdMessage = "";
   private String boardZoomString = "";
   private String keyboardScaleString = "";
+  private String keyboardZoomString = "";
+  private Int32 tableX = 0;
+  private Int32 tableY = 0;
   private System.Timers.Timer? timer;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
 
@@ -99,6 +105,12 @@
 
   protected override async Task OnInitializedAsync()
   {
+    // Parse query params
+    var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("spectator", out var spectator))
+      if (spectator == "on")
+        spectatorMode = true;
+
     BrowserResizeService.OnResize += BrowserResizeHandler;
     await jsRuntime.InvokeVoidAsync("browserResize.registerResizeCallback");
 
@@ -146,7 +158,8 @@
     playerDataDictionary = newPlayerDataDictionary;
     if (hubConnection is not null)
     {
-      playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
+      if (!spectatorMode)
+        playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
       UpdateGameStates();
     }
     UpdateResetButtonClass();
@@ -154,10 +167,14 @@
     await jsRuntime.InvokeVoidAsync("setFocusToElement", gameDiv);
   }
 
-  public void HandleSessionFindResult(Boolean result)
+  public async Task HandleSessionFindResult(Boolean result)
   {
     if (result)
+    {
       sessionFound = true;
+      if (spectatorMode && hubConnection is not null)
+        await hubConnection.SendAsync("ClientConnectAsSpectator", SessionId);
+    }
     else
       searchSessionMessage = "Session not found!!";
     StateHasChanged();
@@ -256,11 +273,14 @@
     Single logoY = 86;
     Single boardX = 365;
     Single boardY = 456;
-    Single keyboardX = 420;
+    Single keyboardX = 520;
     Single keyboardY = 280;
 
     Single newWidth = await jsRuntime.InvokeAsync<Single>("browserResize.getInnerWidth");
     Single newHeight = await jsRuntime.InvokeAsync<Single>("browserResize.getInnerHeight");
+    Boolean bulkUpKeyboard = (newHeight >= 900 && newWidth >= 700);
+    if (bulkUpKeyboard)
+      keyboardY *= 1.2f;
 
     Single currentBoardX = boardX * playerDataDictionary.Count;
     Single currentBoardY = boardY; // This may change when I implement flex box layout
@@ -270,10 +290,14 @@
       allowedHeight = keyboardY; // Minimum height
     Single allowedWidth = newWidth;
 
+    keyboardZoomString = "";
+    keyboardScaleString = "";
+    boardZoomString = "";
     if (allowedWidth >= Math.Max(currentBoardX, keyboardX) && allowedHeight >= boardY)
     {
-      boardZoomString = "";
-      keyboardScaleString  = "";
+      keyboardZoomString = "";
+      if (bulkUpKeyboard)
+        keyboardZoomString = "zoom: 1.2;";
     }
     else
     {
@@ -290,11 +314,11 @@
           scaleFactor = allowedWidth / currentBoardX;
         boardZoomString = $"zoom: {scaleFactor}; -moz-transform: scale({scaleFactor});";
       }
-
+      
       if (allowedWidth < keyboardX)
       {
-        Single scaleFactor = allowedWidth / keyboardX;
-        keyboardScaleString = $"transform: scale({scaleFactor}, 1.0);";
+        Single scaleX = allowedWidth / keyboardX;
+        keyboardScaleString = $"transform: scale({scaleX}, 1.0);";
       }
     }
     StateHasChanged();
@@ -372,11 +396,15 @@
       holdMessage = "Wait until all players submit their guesses.";
     else if (alreadyGuessedCorrectly)
       holdMessage = $"{correctAnswer?.ToUpper()} is correct!{(playerDataDictionary.Count > 1 && !gameOver ? " Entering God Mode!" : "")}";
-    else if (!alreadyGuessedCorrectly && guessLimitReached)
+    else if ((!alreadyGuessedCorrectly && guessLimitReached) || spectatorMode)
       holdMessage = $"The answer is {correctAnswer?.ToUpper() ?? ""}";
     else
       holdMessage = "";
     canSubmitNewGuess = behindOthers && !alreadyGuessedCorrectly && !guessLimitReached;
+    if (spectatorMode)
+      godMode = true;
+    else
+      godMode = playerDataDictionary.ContainsKey(playerName) ? (alreadyGuessedCorrectly && behindOthers) || gameOver : false;
   }
 
   private async Task NewGame()
@@ -448,7 +476,6 @@
       {
         if (playerDataDictionary.Count == 0)
           return;
-        Boolean godMode = playerDataDictionary.ContainsKey(playerName) ? (playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer) && allPlayersAtMaxGuesses) || gameOver : false;
 
         Int32 maxIndex = playerDataDictionary.Count == 0 ? -1 : playerDataDictionary.Max(x => x.Value.Index);
         List<KeyValuePair<String, PlayerData>?> orderedList = new();
@@ -619,7 +646,7 @@
           {
             <div class="guess-tile guess-empty"></div>
           }
-        </div>
+      </div>
       }
     };
   }
@@ -630,96 +657,103 @@
     {
       if (correctAnswer is not null)
       {
-        List<String> playData = playerDataDictionary[playerName].PlayData;
-
-        Dictionary<Char, Int32> letterTileValues = new();
-        for (Char c = 'a'; c <= 'z'; ++c)
-          letterTileValues.Add(c, -1);
-        Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
-        Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
-        Boolean includeLast = (canSubmitNewGuess || (alreadyGuessedCorrectly && allPlayersAtMaxGuesses) || gameOver);
-
-        Int32 playDataLimit = playData.Count - (includeLast ? 0 : 1);
-        for (Int32 i = 0; i < playDataLimit; ++i)
+        if (spectatorMode)
         {
-          String play = playData[i];
-          for (Int32 j = 0; j < play.Length; ++j)
+        <div></div>
+        }
+        else
+        {
+          List<String> playData = playerDataDictionary[playerName].PlayData;
+
+          Dictionary<Char, Int32> letterTileValues = new();
+          for (Char c = 'a'; c <= 'z'; ++c)
+            letterTileValues.Add(c, -1);
+          Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
+          Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
+          Boolean includeLast = (canSubmitNewGuess || (alreadyGuessedCorrectly && allPlayersAtMaxGuesses) || gameOver);
+
+          Int32 playDataLimit = playData.Count - (includeLast ? 0 : 1);
+          for (Int32 i = 0; i < playDataLimit; ++i)
           {
-            Char c = play[j];
-            if (correctAnswer[j] == c)
-              letterTileValues[c] = 2;
-            else if (correctAnswer.Contains(c) && letterTileValues[c] < 2)
-              letterTileValues[c] = 1;
-            else if (letterTileValues[c] < 1)
-              letterTileValues[c] = 0;
-          }
-        }
-        Dictionary<Char, String> letterTileColors = new();
-        foreach (var pair in letterTileValues)
-        {
-          letterTileColors.Add(
-            pair.Key,
-            pair.Value switch
+            String play = playData[i];
+            for (Int32 j = 0; j < play.Length; ++j)
             {
-              -1 => "guess-guessing",
-              0 => "guess-absent",
-              1 => "guess-present",
-              2 => "guess-correct",
-              _ => "guess-guessing"
+              Char c = play[j];
+              if (correctAnswer[j] == c)
+                letterTileValues[c] = 2;
+              else if (correctAnswer.Contains(c) && letterTileValues[c] < 2)
+                letterTileValues[c] = 1;
+              else if (letterTileValues[c] < 1)
+                letterTileValues[c] = 0;
             }
-          );
-        }
-
-        <div class="div-center">
-          <div class="keyboard-board">
-            <div class="div-center div-center-vertical" style=@keyboardScaleString>
-              <div class="keyboard-row">
-                @RenderKeyboardChar(letterTileColors, 'q')
-                @RenderKeyboardChar(letterTileColors, 'w')
-                @RenderKeyboardChar(letterTileColors, 'e')
-                @RenderKeyboardChar(letterTileColors, 'r')
-                @RenderKeyboardChar(letterTileColors, 't')
-                @RenderKeyboardChar(letterTileColors, 'y')
-                @RenderKeyboardChar(letterTileColors, 'u')
-                @RenderKeyboardChar(letterTileColors, 'i')
-                @RenderKeyboardChar(letterTileColors, 'o')
-                @RenderKeyboardChar(letterTileColors, 'p')
-              </div>
-              <div class="keyboard-row">
-                <div class=@($"guess-tile guess-tiles-offset-50")></div>
-                @RenderKeyboardChar(letterTileColors, 'a')
-                @RenderKeyboardChar(letterTileColors, 's')
-                @RenderKeyboardChar(letterTileColors, 'd')
-                @RenderKeyboardChar(letterTileColors, 'f')
-                @RenderKeyboardChar(letterTileColors, 'g')
-                @RenderKeyboardChar(letterTileColors, 'h')
-                @RenderKeyboardChar(letterTileColors, 'j')
-                @RenderKeyboardChar(letterTileColors, 'k')
-                @RenderKeyboardChar(letterTileColors, 'l')
-                <div class=@($"guess-tile guess-tiles-offset-50")></div>
-              </div>
-              <div class="keyboard-row">
-                <div
-                  class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
-                  @onclick="@(e => HandleKey("Enter"))">
-                    Enter
+          }
+          Dictionary<Char, String> letterTileColors = new();
+          foreach (var pair in letterTileValues)
+          {
+            letterTileColors.Add(
+              pair.Key,
+              pair.Value switch
+              {
+                -1 => "guess-guessing",
+                0 => "guess-absent",
+                1 => "guess-present",
+                2 => "guess-correct",
+                _ => "guess-guessing"
+              }
+            );
+          }
+       
+          <div class="div-center">
+            <div class="keyboard-board">
+              <div class="div-center div-center-vertical" style=@keyboardScaleString>
+                <div class="keyboard-row">
+                  @RenderKeyboardChar(letterTileColors, 'q')
+                  @RenderKeyboardChar(letterTileColors, 'w')
+                  @RenderKeyboardChar(letterTileColors, 'e')
+                  @RenderKeyboardChar(letterTileColors, 'r')
+                  @RenderKeyboardChar(letterTileColors, 't')
+                  @RenderKeyboardChar(letterTileColors, 'y')
+                  @RenderKeyboardChar(letterTileColors, 'u')
+                  @RenderKeyboardChar(letterTileColors, 'i')
+                  @RenderKeyboardChar(letterTileColors, 'o')
+                  @RenderKeyboardChar(letterTileColors, 'p')
                 </div>
-                @RenderKeyboardChar(letterTileColors, 'z')
-                @RenderKeyboardChar(letterTileColors, 'x')
-                @RenderKeyboardChar(letterTileColors, 'c')
-                @RenderKeyboardChar(letterTileColors, 'v')
-                @RenderKeyboardChar(letterTileColors, 'b')
-                @RenderKeyboardChar(letterTileColors, 'n')
-                @RenderKeyboardChar(letterTileColors, 'm')
-                <div
-                  class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
-                  @onclick="@(e => HandleKey("Backspace"))">
-                    ⌫
+                <div class="keyboard-row">
+                  <div class=@($"guess-tile guess-tiles-offset-50")></div>
+                  @RenderKeyboardChar(letterTileColors, 'a')
+                  @RenderKeyboardChar(letterTileColors, 's')
+                  @RenderKeyboardChar(letterTileColors, 'd')
+                  @RenderKeyboardChar(letterTileColors, 'f')
+                  @RenderKeyboardChar(letterTileColors, 'g')
+                  @RenderKeyboardChar(letterTileColors, 'h')
+                  @RenderKeyboardChar(letterTileColors, 'j')
+                  @RenderKeyboardChar(letterTileColors, 'k')
+                  @RenderKeyboardChar(letterTileColors, 'l')
+                  <div class=@($"guess-tile guess-tiles-offset-50")></div>
+                </div>
+                <div class="keyboard-row">
+                  <div
+                    class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
+                    @onclick="@(e => HandleKey("Enter"))">
+                      Enter
+                  </div>
+                  @RenderKeyboardChar(letterTileColors, 'z')
+                  @RenderKeyboardChar(letterTileColors, 'x')
+                  @RenderKeyboardChar(letterTileColors, 'c')
+                  @RenderKeyboardChar(letterTileColors, 'v')
+                  @RenderKeyboardChar(letterTileColors, 'b')
+                  @RenderKeyboardChar(letterTileColors, 'n')
+                  @RenderKeyboardChar(letterTileColors, 'm')
+                  <div
+                    class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
+                    @onclick="@(e => HandleKey("Backspace"))">
+                      ⌫
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        }
       }
     };
   }
@@ -739,15 +773,22 @@
   {
     return __builder =>
     {
-      <div class="div-center">
-        <div class="reset-row" @onclick="NewGame">
-          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>R</div>
-          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
-          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>S</div>
-          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
-          <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>T</div>
+      if (spectatorMode)
+      {
+      <div></div>
+      }
+      else
+      {
+        <div class="div-center">
+          <div class="reset-row" @onclick="NewGame">
+            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>R</div>
+            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
+            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>S</div>
+            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
+            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>T</div>
+          </div>
         </div>
-      </div>
+      }
     };
   }
 

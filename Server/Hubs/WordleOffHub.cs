@@ -97,6 +97,19 @@ public class WordleOffHub : Hub
     }
   }
 
+  public async Task ClientConnectAsSpectator(String sessionId)
+  {
+    if (!gameSessions.ContainsKey(sessionId))
+    {
+      await SendJoinError(ServerJoinError.SessionNotFound);
+      return;
+    }
+    await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
+    connectionIdToSessionId.Add(Context.ConnectionId, sessionId);
+    await SendCurrentAnswer(sessionId, false);
+    await SendFullGameState(sessionId);
+  }
+
   public async Task ClientReconnect(String sessionId, String playerName)
   {
     if (!gameSessions.ContainsKey(sessionId))
@@ -106,9 +119,11 @@ public class WordleOffHub : Hub
     }
     await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
     connectionIdToSessionId.Add(Context.ConnectionId, sessionId);
-    gameSessions[sessionId].ReconnectPlayer(playerName, Context.ConnectionId);
+    if (playerName != "") // Check if Spectator
+      gameSessions[sessionId].ReconnectPlayer(playerName, Context.ConnectionId); // Actual Player
   }
 
+  // Not Used
   public async Task ClientUpdatePlayerName(String newPlayerName)
   {
     String connectionId = Context.ConnectionId;
@@ -129,8 +144,8 @@ public class WordleOffHub : Hub
     if (!connectionIdToSessionId.ContainsKey(connectionId))
       return;
     String sessionId = connectionIdToSessionId[connectionId];
-    gameSessions[sessionId].EnterGuess(playerName, guess);
-    await SendFullGameState(sessionId);
+    if (gameSessions[sessionId].EnterGuess(playerName, guess) == EnterWordResult.Success)
+      await SendFullGameState(sessionId);
   }
 
   #endregion
@@ -165,12 +180,12 @@ public class WordleOffHub : Hub
 
   public String CreateNewSession()
   {
-    String newSessionId = GetNewGameSessionId();
-    gameSessions.Add(newSessionId, new GameSession(newSessionId));
+    //String newSessionId = GetNewGameSessionId();
+    //gameSessions.Add(newSessionId, new GameSession(newSessionId));
 
-    // //For Testing Only
-    // String newSessionId = "123-123-123";
-    // gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
+    //For Testing Only
+    String newSessionId = "123-123-123";
+    gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
     return newSessionId;
   }
 
@@ -226,9 +241,9 @@ public class WordleOffHub : Hub
       return;
 
     String sessionId = connectionIdToSessionId[Context.ConnectionId];
-    gameSessions[sessionId].DisconnectPlayer(Context.ConnectionId);
-    connectionIdToSessionId.Remove(Context.ConnectionId);
     await Groups.RemoveFromGroupAsync(Context.ConnectionId, sessionId);
+    connectionIdToSessionId.Remove(Context.ConnectionId);
+    gameSessions[sessionId].DisconnectPlayer(Context.ConnectionId);
     latestClients = Clients;
   }
 

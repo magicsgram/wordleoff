@@ -14,6 +14,7 @@ public enum AddPlayerResult
 public enum EnterWordResult
 {
   Success,
+  MaxGuesses,
   PlayerNotFound
 }
 
@@ -130,6 +131,8 @@ public class GameSession
     if (!PlayerDataDictionary.ContainsKey(playerName))
       return EnterWordResult.PlayerNotFound;
 
+    if (PlayerDataDictionary[playerName].PlayData.Count >= 6)
+      return EnterWordResult.MaxGuesses;
     PlayerDataDictionary[playerName].PlayData.Add(word);
     return EnterWordResult.Success;
   }
