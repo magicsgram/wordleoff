@@ -325,7 +325,7 @@
         }
       }
     }
-    boardZoomString = $"zoom: {scaleFactor}; -moz-transform: scale({scaleFactor});";
+    boardZoomString = $"transform: scale({scaleFactor}); margin: -9999px"; // hack to bring up keyboard
 
     if (allowedWidth < keyboardX)
     {
