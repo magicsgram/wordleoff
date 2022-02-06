@@ -1,6 +1,11 @@
 .div-center {
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   margin-top: 10px;
+}
+
+.session-id-part {
+  width: 40px;
 }

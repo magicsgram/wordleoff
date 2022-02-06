@@ -5,11 +5,25 @@
 
 <div class="div-center">
   <button @onclick="CreateNewGame" disabled="@(!IsConnected)">Create a new game</button>
+  <div style="height: 20px;"></div>
+  <div>
+    OR type in the code your friends/family gave you
+  </div>  
+  <div>
+    <input class="session-id-part" @bind="sessionIdPart1" disabled="@(!IsConnected)" maxlength="3" />
+    <input class="session-id-part" @bind="sessionIdPart2" disabled="@(!IsConnected)" maxlength="3" />
+    <input class="session-id-part" @bind="sessionIdPart3" disabled="@(!IsConnected)" maxlength="3" />
+    <button @onclick="JoinSession" disabled="@(!IsConnected)">Join</button>
+  </div>
 </div>
 
 @code {
   private HubConnection? hubConnection;
-  
+
+  private String sessionIdPart1 = "";
+  private String sessionIdPart2 = "";
+  private String sessionIdPart3 = "";
+
   protected override async Task OnInitializedAsync()
   {
     hubConnection = new HubConnectionBuilder()
@@ -33,6 +47,8 @@
     if (hubConnection is not null)
       await hubConnection.SendAsync("ClientCreateNewSession");
   }
+
+  private void JoinSession() => NavigationManager.NavigateTo($"game/{sessionIdPart1}-{sessionIdPart2}-{sessionIdPart3}");
 
   public async ValueTask DisposeAsync()
   {
