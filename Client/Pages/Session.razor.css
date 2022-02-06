@@ -26,7 +26,7 @@ table {
 
 .player-data {
   flex-grow: 1;
-  margin: -9999px; /*Zoom Hack to shrink div*/
+  /*margin: -9999px; /*Zoom Hack to shrink div*/
   pointer-events: none;
 }
 
