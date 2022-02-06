@@ -4,7 +4,7 @@ table {
 }
 
 .my-board {
-  border: 1px solid #666;
+  border: 1px solid #616161;
   border-radius: 4px;
 }
 
@@ -26,9 +26,11 @@ table {
 
 .player-data {
   flex-grow: 1;
+  margin: -9999px; /*Zoom Hack to shrink div*/
+  pointer-events: none;
 }
 
-.play-container {
+.play-div {
   display: inline-block;
   align-content: center;
   justify-content: center;
@@ -52,28 +54,26 @@ table {
   width: 350px;
   display: grid;
   grid-template-rows: repeat(6, 1.5fr);
-  grid-gap: 6px;
+  gap: 6px;
 }
 
 .guess-row {
   display: grid;
   grid-template-columns: repeat(5, 1.5fr);
-  grid-gap: 6px;
+  gap: 6px;
 }
 
 .reset-row {
   display: grid;
   grid-template-columns: repeat(5, 1.5fr);
-  grid-gap: 2px;
+  gap: 2px;
   width: 150px;
   cursor: pointer;
-  margin-bottom: 1.0rem;
 }
 
 .keyboard-board {
   padding: 4px;
   padding-top: 2px;
-  margin-bottom: 20px;
 }
 
 .keyboard-row {
@@ -91,7 +91,7 @@ table {
 .session-id-row {
   display: grid;
   grid-template-columns: repeat(11, 1.5fr);
-  grid-gap: 2px;
+  gap: 2px;
   width: 200px;
   height: 14px;
   margin-top: 2px;
@@ -131,13 +131,15 @@ table {
   line-height: 1.8rem;
   margin: 2px;
   border-radius: 4px;
+  cursor: pointer;
 }
 
 .guess-tile-keyboard-small {
-  font-size: 1.0rem;
-  line-height: 1.0rem;
+  font-size: 0.8rem;
+  line-height: 0.8rem;
   margin: 2px;
   border-radius: 4px;
+  cursor: pointer;
 }
 
 .guess-tiles-offset-50 {
@@ -160,24 +162,32 @@ table {
   border-radius: 2px;
 }
 
-.guess-present {
-  --tile-color: #b59f3b;
+.guess-correct {
+  --tile-color: #582;
 }
 
-.guess-correct {
-  --tile-color: #538d4e;
+.guess-correct-hc {
+  --tile-color: #F61;
+}
+
+.guess-present {
+  --tile-color: #A93;
+}
+
+.guess-present-hc {
+  --tile-color: #59D;
 }
 
 .guess-absent {
-  --tile-color: #3a3a3c;
+  --tile-color: #353535;
 }
 
 .guess-guessing {
-  --tile-color: #6d6c6c;
+  --tile-color: #656565;
 }
 
 .guess-empty {
-  border: 1px solid #676767;
+  border: 1px solid #656565;
 }
 
 .div-center {
@@ -196,4 +206,15 @@ table {
 
 .div-center-vertical {
   flex-direction: column;
+}
+
+.last-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+.last-row-end-spacer {
+  width: 65px;
 }

@@ -33,6 +33,9 @@ public class WordleOffHub : Hub
       removeExpiredSessionsTimer.Start();
 
       initialized = true;
+
+      // // For Text Only
+      // CreateNewSession();
     }
   }
 
@@ -180,12 +183,12 @@ public class WordleOffHub : Hub
 
   public String CreateNewSession()
   {
-    //String newSessionId = GetNewGameSessionId();
-    //gameSessions.Add(newSessionId, new GameSession(newSessionId));
+    String newSessionId = GetNewGameSessionId();
+    gameSessions.Add(newSessionId, new GameSession(newSessionId));
 
-    //For Testing Only
-    String newSessionId = "123-123-123";
-    gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
+    ////For Testing Only
+    //String newSessionId = "123-123-123";
+    //gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
     return newSessionId;
   }
 

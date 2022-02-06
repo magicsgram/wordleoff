@@ -90,7 +90,7 @@
   private Boolean godMode = false;
   private HashSet<String> fullWords = new();
   private String? correctAnswer;
-  private String resetButtonClass = "";
+  private Boolean highContrastMode = false;
   private String copyIdMessage = "";
   private String boardZoomString = "";
   private String keyboardScaleString = "";
@@ -160,7 +160,6 @@
         playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
       UpdateGameStates();
     }
-    UpdateResetButtonClass();
     await HandleBrowserResize();
     await jsRuntime.InvokeVoidAsync("setFocusToElement", gameDiv);
   }
@@ -325,7 +324,7 @@
         }
       }
     }
-    boardZoomString = $"transform: scale({scaleFactor}); margin: -9999px"; // hack to bring up keyboard
+    boardZoomString = $"transform: scale({scaleFactor})";
 
     if (allowedWidth < keyboardX)
     {
@@ -363,19 +362,22 @@
 
   public Boolean IsGameInProgress => playerDataDictionary.Any(x => x.Value.PlayData.Count > 0);
 
-  public void UpdateResetButtonClass()
+  public String ResetButtonClass
   {
-    if (correctAnswer is not null)
+    get
     {
-      if (playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer)))
-        resetButtonClass = "guess-correct";
-      else if (playerDataDictionary.Values.All(x => x.PlayData.Count == 0))
-        resetButtonClass = "guess-absent";
+      if (correctAnswer is not null)
+      {
+        if (playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer)))
+          return GuessCorrectClassString;
+        else if (playerDataDictionary.Values.All(x => x.PlayData.Count == 0))
+          return "guess-absent";
+        else
+          return GuessPresentClassString;
+      }
       else
-        resetButtonClass = "guess-present";
+        return "";
     }
-    else
-      resetButtonClass = "";
   }
 
   public void UpdateGameStates()
@@ -428,6 +430,9 @@
     if (hubConnection is not null)
       await hubConnection.SendAsync("ClientResetCurrentSession", SessionId);
   }
+
+  private String GuessCorrectClassString => $"guess-correct{(highContrastMode ? "-hc" : "")}";
+  private String GuessPresentClassString => $"guess-present{(highContrastMode ? "-hc" : "")}";
 
   private async Task OnClosed(Exception? e)
   {
@@ -507,7 +512,7 @@
                   String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
                   String borderClass = playerDataDictionary.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
                   <td>
-                    <div class=@($"play-container {borderClass}")>
+                    <div class=@($"play-div {borderClass}")>
                       <div>@($"{currentPlayerName}{youIndicator}")</div>
                       <div class="guess-board">
                         @for (Int32 x = 0; x < currentPlayerData.PlayData.Count; ++x)
@@ -581,10 +586,10 @@
                 backgroundColorCSS = "guess-absent";
                 break;
               case 1:
-                backgroundColorCSS = "guess-present";
+                backgroundColorCSS = GuessPresentClassString;
                 break;
               case 2:
-                backgroundColorCSS = "guess-correct";
+                backgroundColorCSS = GuessCorrectClassString;
                 break;
             }
             <div class=@($"guess-tile {backgroundColorCSS}")>@displayChar</div>
@@ -706,8 +711,8 @@
               {
                 -1 => "guess-guessing",
                 0 => "guess-absent",
-                1 => "guess-present",
-                2 => "guess-correct",
+                1 => GuessPresentClassString,
+                2 => GuessCorrectClassString,
                 _ => "guess-guessing"
               }
             );
@@ -775,7 +780,7 @@
       <div class=@($"guess-tile guess-tile-keyboard {letterTileColors[renderChar]}")
        @onclick="@(e => HandleKey(renderChar.ToString()))">
         @renderChar
-      </div>
+    </div>
     };
   }
 
@@ -783,22 +788,26 @@
   {
     return __builder =>
     {
-      if (spectatorMode)
-      {
-      <div></div>
-      }
-      else
-      {
-        <div class="div-center">
-          <div class="reset-row" @onclick="NewGame">
-            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>R</div>
-            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
-            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>S</div>
-            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>E</div>
-            <div class=@($"guess-tile guess-tile-small {@resetButtonClass}")>T</div>
-          </div>
+      <div class="last-row">
+        <div class="last-row-end-spacer">
         </div>
-      }
+        @if (!spectatorMode)
+        {
+          <div class="div-center">
+            <div class="reset-row" @onclick="NewGame">
+              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>R</div>
+              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
+              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>S</div>
+              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
+              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>T</div>
+            </div>
+          </div>
+        }
+        <div class="last-row-end-spacer form-check form-switch">
+          <label class="form-check-label">HC</label>
+          <input class="form-check-input" type="checkbox" @bind="highContrastMode">
+        </div>
+      </div>
     };
   }
 
