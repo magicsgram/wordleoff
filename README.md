@@ -21,8 +21,6 @@ Enjoy and let me know if you have any questions, feedbacks, etc.
 ***
 Some thoughts if you ever played a game called 'Among Us'.
 
-I freaking love the voting mechanics in 'Among Us', as there's so much tension and pressuring your friends to 'vote' on Imposters.
-
-Also, after imposters kill you, you know who they are, and it gets even more interesting because you get to spectate how other people struggle in search of them.
+I freaking love the voting mechanics in 'Among Us', as there's so much tension and pressure to 'vote' on Imposters. Also, after the imposters kill you and you know who they are, it gets even more interesting because you get to spectate how other people struggle in search of them.
 
 WORDLE-OFF is loosely around this idea and it's much more fun if you're on voice chats w/ your peers.
