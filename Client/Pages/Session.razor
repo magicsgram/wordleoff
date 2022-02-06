@@ -327,7 +327,7 @@
         }
       }
     }
-    boardZoomString = $"transform: scale({scaleFactor})";
+    boardZoomString = $"transform: scale({scaleFactor}); height: {tableY * scaleFactor * boardY}px;";
 
     if (allowedWidth < keyboardX)
     {
