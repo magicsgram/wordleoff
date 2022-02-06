@@ -13,7 +13,7 @@ All players must submit their guesses before you can submit another one, keeping
 
 Get on Discord/Zoom/Skyle/Google Meets w/ your friends and family and invite them by sending them a link to your session (you can share a link by clicking on the session ID on top)
 - Everyone has to submit a guess until you can move on to a next guess. Pressure your peers to hurry up :)
-- Once you get the answer, you enter a 'God Mode' and get to see everyone else's guess. Tell them you can see their answers and give them even more pressure :) :)
+- Once you get the answer, you enter a 'God Mode' and get to see everyone else's guess. Tell them you can see their guesses and give them even more pressure :) :)
 - Up to 16 people can join a session simultaneously. Although possible, I do not recommend playing this on mobile if you have more than 4 people.
 - Once the game is over (either everyone got the answer or failed), you'll be prompted a link to see the definition on dictionary.com . I had to add this link because I got so frustrated w/ some answers on Wordle in the past couple weeks.
 
