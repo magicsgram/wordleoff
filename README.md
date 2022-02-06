@@ -5,7 +5,7 @@ W/ heavy inspiration from
 - Social Elements of Among Us' discussion mechanics  https://www.innersloth.com/games/among-us/
 
 ***
-Here's my own take of a multiplayer Wordle game, called WORDLE-OFF.
+Here's my own take of a multiplayer Wordle game, called WORDLEOFF.
 
 Unlike some other examples I saw online, this is NOT a 'race to the answer' type of game.
 
