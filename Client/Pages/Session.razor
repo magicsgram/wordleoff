@@ -242,24 +242,27 @@
 
   public async Task HandleKey(String key)
   {
-    PlayerData playerData = playerDataDictionary[playerName];
-    if (correctAnswer is not null && playerData.PlayData.Count < 6 && !playerData.AnswerGuessCorrectly(correctAnswer) && canSubmitNewGuess)
+    if (!spectatorMode)
     {
-      if (key == "Backspace" && guess.Length > 0)
+      PlayerData playerData = playerDataDictionary[playerName];
+      if (correctAnswer is not null && playerData.PlayData.Count < 6 && !playerData.AnswerGuessCorrectly(correctAnswer) && canSubmitNewGuess)
       {
-        guess = guess.Remove(guess.Length - 1);
-        submitError = "";
-      }
-      else if (key == "Enter")
-      {
-        if (guess.Length == correctAnswer.Length)
-          await SubmitGuess();
-      }
-      else if (key.Length == 1)
-      {
-        Char c = key.ToLower()[0];
-        if ('a' <= c && c <= 'z' && guess.Length < correctAnswer.Length)
-          guess += c;
+        if (key == "Backspace" && guess.Length > 0)
+        {
+          guess = guess.Remove(guess.Length - 1);
+          submitError = "";
+        }
+        else if (key == "Enter")
+        {
+          if (guess.Length == correctAnswer.Length)
+            await SubmitGuess();
+        }
+        else if (key.Length == 1)
+        {
+          Char c = key.ToLower()[0];
+          if ('a' <= c && c <= 'z' && guess.Length < correctAnswer.Length)
+            guess += c;
+        }
       }
     }
   }
