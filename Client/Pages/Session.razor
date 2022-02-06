@@ -791,24 +791,26 @@
   {
     return __builder =>
     {
-      <div class="last-row">
-        <div class="last-row-end-spacer">
-        </div>
-        @if (!spectatorMode)
-        {
-          <div class="div-center">
-            <div class="reset-row" @onclick="NewGame">
-              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>R</div>
-              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
-              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>S</div>
-              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
-              <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>T</div>
-            </div>
+      <div class="div-center">
+        <div class="last-row">
+          <div class="last-row-end-spacer">
           </div>
-        }
-        <div class="last-row-end-spacer form-check form-switch">
-          <label class="form-check-label">HC</label>
-          <input class="form-check-input" type="checkbox" @bind="highContrastMode">
+          @if (!spectatorMode)
+          {
+            <div class="div-center">
+              <div class="reset-row" @onclick="NewGame">
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>R</div>
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>S</div>
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>T</div>
+              </div>
+            </div>
+          }
+          <div class="last-row-end-spacer form-check form-switch">
+            <label class="form-check-label">HC</label>
+            <input class="form-check-input" type="checkbox" @bind="highContrastMode">
+          </div>
         </div>
       </div>
     };
