@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using System.Net;
 using WordleOff.Server.Hubs;
@@ -15,6 +16,18 @@ builder.Services.AddResponseCompression(opts =>
 });
 #endregion
 
+builder.Services.AddHttpsRedirection(options =>
+{
+  options.HttpsPort = 443;
+});
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+  options.ForwardedHeaders = ForwardedHeaders.XForwardedFor |
+                              ForwardedHeaders.XForwardedProto;
+  options.KnownNetworks.Clear();
+  options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -30,7 +43,7 @@ else
   app.UseExceptionHandler("/Error");
   app.UseHsts();
 }
-
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseBlazorFrameworkFiles();
 app.UseStaticFiles();
