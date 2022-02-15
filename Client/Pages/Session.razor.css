@@ -115,7 +115,6 @@ table {
   vertical-align: middle;
   box-sizing: border-box;
   text-transform: uppercase;
-  background-color: var(--tile-color);
   border-radius: 4px;
 }
 
@@ -162,27 +161,27 @@ table {
 }
 
 .guess-correct {
-  --tile-color: #582;
+  background-color: #582;
 }
 
 .guess-correct-hc {
-  --tile-color: #F61;
+  background-color: #F61;
 }
 
 .guess-present {
-  --tile-color: #A93;
+  background-color: #A93;
 }
 
 .guess-present-hc {
-  --tile-color: #59D;
+  background-color: #59D;
 }
 
 .guess-absent {
-  --tile-color: #353535;
+  background-color: #353535;
 }
 
 .guess-guessing {
-  --tile-color: #656565;
+  background-color: #656565;
 }
 
 .guess-empty {
