@@ -434,8 +434,8 @@
       await hubConnection.SendAsync("ClientResetCurrentSession", SessionId);
   }
 
-  private String GuessCorrectClassString => $"guess-correct{(highContrastMode ? "-hc" : "")}";
-  private String GuessPresentClassString => $"guess-present{(highContrastMode ? "-hc" : "")}";
+  private String GuessCorrectClassString => $"guess-guessing guess-correct{(highContrastMode ? "-hc" : "")}";
+  private String GuessPresentClassString => $"guess-guessing guess-present{(highContrastMode ? "-hc" : "")}";
 
   private async Task OnClosed(Exception? e)
   {
@@ -586,7 +586,7 @@
             @switch (colorList[i])
             {
               case 0:
-                backgroundColorCSS = "guess-absent";
+                backgroundColorCSS = "guess-guessing guess-absent";
                 break;
               case 1:
                 backgroundColorCSS = GuessPresentClassString;

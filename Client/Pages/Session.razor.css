@@ -161,23 +161,68 @@ table {
 }
 
 .guess-correct {
-  background-color: #582;
+  animation-duration: 0.3s;
+  animation-name: guess-correct-frames;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes guess-correct-frames {
+  to {
+    background-color: #582;
+  }
 }
 
 .guess-correct-hc {
-  background-color: #F61;
+  animation-duration: 0.3s;
+  animation-name: guess-correct-hc-frames;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes guess-correct-hc-frames {
+  to {
+    background-color: #F61;
+  }
 }
 
 .guess-present {
-  background-color: #A93;
+  animation-duration: 0.3s;
+  animation-name: guess-present-frames;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes guess-present-frames {
+  to {
+    background-color: #A93;
+  }
 }
 
 .guess-present-hc {
-  background-color: #59D;
+  animation-duration: 0.3s;
+  animation-name: guess-present-hc-frames;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes guess-present-hc-frames {
+  to {
+    background-color: #59D;
+  }
 }
 
 .guess-absent {
-  background-color: #353535;
+  animation-duration: 0.3s;
+  animation-name: guess-absent-frames;
+  animation-fill-mode: forwards;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes guess-absent-frames {
+  to {
+    background-color: #353535;
+  }
 }
 
 .guess-guessing {
