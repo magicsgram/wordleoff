@@ -50,7 +50,7 @@ table {
 }
 
 .guess-board {
-  width: 350px;
+  width: 400px;
   display: grid;
   grid-template-rows: repeat(6, 1.5fr);
   gap: 6px;
