@@ -18,7 +18,7 @@ builder.Services.AddResponseCompression(opts =>
 builder.Services.AddHttpsRedirection(options =>
 {
   options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
-  options.HttpsPort = 5001;
+  options.HttpsPort = 443;
 });
 
 var app = builder.Build();
