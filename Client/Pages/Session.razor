@@ -96,7 +96,9 @@
   private String keyboardScaleString = "";
   private Int32 tableX = 0;
   private Int32 tableY = 0;
-  private System.Timers.Timer? timer;
+  private System.Timers.Timer? copyUrlTimer;
+  private System.Timers.Timer? invalidGuessTimer;
+  private Boolean invalidGuessTriggerAnimation = false;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
 
   private ElementReference gameDiv;
@@ -209,20 +211,39 @@
   {
     if (hubConnection is not null && correctAnswer is not null)
     {
-      if (guess.Length != correctAnswer!.Length)
+      if (guess.Length != correctAnswer.Length)
       {
         submitError = $"Guess a {correctAnswer.Length}-letter word";
+        invalidGuessTriggerAnimation = true;
+        StartInvalidAnimationTimer();
         return;
       }
       else if (!fullWords.Contains(guess.ToLower()))
       {
         submitError = "Not a word!";
+        invalidGuessTriggerAnimation = true;
+        StartInvalidAnimationTimer();
         return;
       }
       if (canSubmitNewGuess)
         await hubConnection.SendAsync("ClientSubmitGuess", playerName, guess.ToLower());
       submitError = "";
     }
+  }
+
+  public void StartInvalidAnimationTimer()
+  {
+    invalidGuessTimer = new(300);
+    invalidGuessTimer.AutoReset = false;
+    invalidGuessTimer.Elapsed += async (sender, e) =>
+    {
+      await Task.Run(() =>
+      {
+        invalidGuessTriggerAnimation = false;
+        StateHasChanged();
+      });
+    };
+    invalidGuessTimer.Start();
   }
 
   public async Task Reconnect()
@@ -254,14 +275,16 @@
         }
         else if (key == "Enter")
         {
-          if (guess.Length == correctAnswer.Length)
-            await SubmitGuess();
+          await SubmitGuess();
         }
         else if (key.Length == 1)
         {
           Char c = key.ToLower()[0];
           if ('a' <= c && c <= 'z' && guess.Length < correctAnswer.Length)
+          {
             guess += c;
+            submitError = "";
+          }
         }
       }
     }
@@ -341,9 +364,9 @@
   {
     await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", $"https://www.wordleoff.com/game/{SessionId}");
     copyIdMessage = " (Copied!!!)";
-    timer = new(5000);
-    timer.AutoReset = false;
-    timer.Elapsed += async (sender, e) =>
+    copyUrlTimer = new(5000);
+    copyUrlTimer.AutoReset = false;
+    copyUrlTimer.Elapsed += async (sender, e) =>
     {
       await Task.Run(() =>
       {
@@ -351,7 +374,7 @@
         StateHasChanged();
       });
     };
-    timer.Start();
+    copyUrlTimer.Start();
   }
 
   public async Task NavigateToDictionaryDotCom()
@@ -434,8 +457,8 @@
       await hubConnection.SendAsync("ClientResetCurrentSession", SessionId);
   }
 
-  private String GuessCorrectClassString => $"guess-guessing guess-correct{(highContrastMode ? "-hc" : "")}";
-  private String GuessPresentClassString => $"guess-guessing guess-present{(highContrastMode ? "-hc" : "")}";
+  private String GuessCorrectClassString => $"guess-correct{(highContrastMode ? "-hc" : "")}";
+  private String GuessPresentClassString => $"guess-present{(highContrastMode ? "-hc" : "")}";
 
   private async Task OnClosed(Exception? e)
   {
@@ -586,13 +609,13 @@
             @switch (colorList[i])
             {
               case 0:
-                backgroundColorCSS = "guess-guessing guess-absent";
+                backgroundColorCSS = "guess-absent";
                 break;
               case 1:
-                backgroundColorCSS = GuessPresentClassString;
+                backgroundColorCSS = $"{GuessPresentClassString}";
                 break;
               case 2:
-                backgroundColorCSS = GuessCorrectClassString;
+                backgroundColorCSS = $"{GuessCorrectClassString}";
                 break;
             }
             <div class=@($"guess-tile {backgroundColorCSS}")>@displayChar</div>
@@ -611,7 +634,7 @@
         {
           @foreach (Char c in currentGuess)
           {
-            <div class="guess-tile guess-guessing">@c</div>
+            <div class="guess-tile guess-guessing-mine">@c</div>
           }
         }
         else
@@ -658,7 +681,7 @@
         <div class="guess-row">
           @for (Int32 i = 0; i < guess.Length; ++i)
           {
-            <div class=@($"guess-tile guess-guessing")>@guess[i]</div>
+            <div class=@($"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}")>@guess[i]</div>
           }
           @for (Int32 i = guess.Length; i < correctAnswer.Length; ++i)
           {

@@ -160,73 +160,140 @@ table {
   border-radius: 2px;
 }
 
+.guess-guessing-solid {
+  background-color: #656565;
+}
+
+.guess-guessing {
+  animation: 0.1s linear forwards guess-guessing-frames;
+}
+
+@keyframes guess-guessing-frames {
+  100% {
+    background-color: #656565;
+  }
+}
+
+.guess-guessing-mine {
+  background-color: #656565;
+  animation: 0.3s ease-in-out forwards guess-guessing-mine-frames;
+}
+
+@keyframes guess-guessing-mine-frames {
+  100% {
+    background-color: #888;
+  }
+}
+
+.guess-invalid {
+  background-color: #656565;
+  animation: 0.4s ease-in-out forwards guess-invalid-frames;
+}
+
+@keyframes guess-invalid-frames {
+  25% {
+    transform: scale(0.90);
+  }
+  50% {
+    transform: scale(1.0);
+  }
+  75% {
+    transform: scale(0.90);
+  }
+  100% {
+    transform: scale(1.0);
+  }
+}
+
 .guess-correct {
-  animation-duration: 0.3s;
-  animation-name: guess-correct-frames;
-  animation-fill-mode: forwards;
-  animation-timing-function: ease-in-out;
+  background-color: #656565;
+  animation: 0.6s linear forwards guess-correct-frames, 0.6s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-correct-frames {
-  to {
+  50% {
+    background-color: #656565;
+  }
+  51% {
+    background-color: #582;
+  }
+  100% {
     background-color: #582;
   }
 }
 
 .guess-correct-hc {
-  animation-duration: 0.3s;
-  animation-name: guess-correct-hc-frames;
-  animation-fill-mode: forwards;
-  animation-timing-function: ease-in-out;
+  background-color: #656565;
+  animation: 0.6s linear forwards guess-correct-hc-frames, 0.6s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-correct-hc-frames {
-  to {
+  50% {
+    background-color: #656565;
+  }
+  51% {
+    background-color: #F61;
+  }
+  100% {
     background-color: #F61;
   }
 }
 
 .guess-present {
-  animation-duration: 0.3s;
-  animation-name: guess-present-frames;
-  animation-fill-mode: forwards;
-  animation-timing-function: ease-in-out;
+  background-color: #656565;
+  animation: 0.6s linear forwards guess-present-frames, 0.6s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-present-frames {
-  to {
+  50% {
+    background-color: #656565;
+  }
+  51% {
+    background-color: #A93;
+  }
+  100% {
     background-color: #A93;
   }
 }
 
 .guess-present-hc {
-  animation-duration: 0.3s;
-  animation-name: guess-present-hc-frames;
-  animation-fill-mode: forwards;
-  animation-timing-function: ease-in-out;
+  background-color: #656565;
+  animation: 0.6s linear forwards guess-present-hc-frames, 0.6s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-present-hc-frames {
-  to {
+  50% {
+    background-color: #656565;
+  }
+  51% {
+    background-color: #59D;
+  }
+  100% {
     background-color: #59D;
   }
 }
 
 .guess-absent {
-  animation-duration: 0.3s;
-  animation-name: guess-absent-frames;
-  animation-fill-mode: forwards;
-  animation-timing-function: ease-in-out;
+  background-color: #656565;
+  animation: 0.6s linear forwards guess-absent-frames, 0.6s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-absent-frames {
-  to {
+  50% {
+    background-color: #656565;
+  }
+  51% {
+    background-color: #353535;
+  }
+  100% {
     background-color: #353535;
   }
 }
 
-.guess-guessing {
-  background-color: #656565;
+@keyframes flip-tile-frames {
+  50% {
+    transform: rotateX(90deg);
+  }
 }
 
 .guess-empty {
