@@ -15,12 +15,6 @@ builder.Services.AddResponseCompression(opts =>
 });
 #endregion
 
-builder.Services.AddHttpsRedirection(options =>
-{
-  options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
-  options.HttpsPort = 443;
-});
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
