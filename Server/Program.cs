@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.ResponseCompression;
+using System.Net;
 using WordleOff.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,12 @@ builder.Services.AddResponseCompression(opts =>
   opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octet-stream" });
 });
 #endregion
+
+builder.Services.AddHttpsRedirection(options =>
+{
+  options.RedirectStatusCode = (int)HttpStatusCode.TemporaryRedirect;
+  options.HttpsPort = 5001;
+});
 
 var app = builder.Build();
 
