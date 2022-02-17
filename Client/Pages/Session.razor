@@ -101,6 +101,8 @@
   private Boolean invalidGuessTriggerAnimation = false;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
 
+  private Random random = new();
+
   private ElementReference gameDiv;
 
   protected override async Task OnInitializedAsync()
@@ -602,6 +604,9 @@
             --letterCountInAnswer[currentGuess[i]];
           }
         <div class="guess-row">
+          @{
+            List<Int32> randomOrder = (new Int32[] {1, 2, 3, 4, 5}).OrderBy(x => random.NextInt64()).ToList();
+          }
           @for (Int32 i = 0; i < correctAnswer.Length; ++i)
           {
             Char displayChar = hideLetters ? '?' : currentGuess[i];
@@ -609,13 +614,13 @@
             @switch (colorList[i])
             {
               case 0:
-                backgroundColorCSS = "guess-absent";
+                backgroundColorCSS = $"guess-absent-{randomOrder[i]}";
                 break;
               case 1:
-                backgroundColorCSS = $"{GuessPresentClassString}";
+                backgroundColorCSS = $"{GuessPresentClassString}-{randomOrder[i]}";
                 break;
               case 2:
-                backgroundColorCSS = $"{GuessCorrectClassString}";
+                backgroundColorCSS = $"{GuessCorrectClassString}-{randomOrder[i]}";
                 break;
             }
             <div class=@($"guess-tile {backgroundColorCSS}")>@displayChar</div>
