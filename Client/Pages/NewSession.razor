@@ -10,9 +10,9 @@
     OR type in the code your friends/family gave you
   </div>  
   <div>
-    <input class="session-id-part" @bind="sessionIdPart1" disabled="@(!IsConnected)" type="number" pattern="[0-9]*" inputmode="numeric" maxlength="3" />
-    <input class="session-id-part" @bind="sessionIdPart2" disabled="@(!IsConnected)" type="number" pattern="[0-9]*" inputmode="numeric" maxlength="3" />
-    <input class="session-id-part" @bind="sessionIdPart3" disabled="@(!IsConnected)" type="number" pattern="[0-9]*" inputmode="numeric" maxlength="3" />
+    <input class="session-id-part" @bind="sessionIdPart1" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" />
+    <input class="session-id-part" @bind="sessionIdPart2" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" />
+    <input class="session-id-part" @bind="sessionIdPart3" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" />
     <button @onclick="JoinSession" disabled="@(!IsConnected)">Join</button>
   </div>
   <div style="height: 60px;"></div>
