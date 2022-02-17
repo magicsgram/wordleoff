@@ -90,7 +90,6 @@
   private Boolean godMode = false;
   private HashSet<String> fullWords = new();
   private String? correctAnswer;
-  private Boolean highContrastMode = false;
   private String copyIdMessage = "";
   private String boardZoomString = "";
   private String keyboardScaleString = "";
@@ -100,10 +99,19 @@
   private System.Timers.Timer? invalidGuessTimer;
   private Boolean invalidGuessTriggerAnimation = false;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
-
   private Random random = new();
-
   private ElementReference gameDiv;
+  private Boolean _highContrastMode = false;
+  private Boolean highContrastModeChanged = false;
+  private Boolean highContrastMode
+  {
+    get { return _highContrastMode; }
+    set
+    {
+      _highContrastMode = value;
+      highContrastModeChanged = true;
+    }
+  }
 
   protected override async Task OnInitializedAsync()
   {
@@ -130,6 +138,15 @@
     await hubConnection.StartAsync();
 
     await hubConnection.InvokeAsync("ClientSearchSession", SessionId);
+  }
+
+  protected override async Task OnAfterRenderAsync(Boolean firstRender)
+  {
+    if (highContrastModeChanged)
+    {
+      highContrastModeChanged = false;
+      await jsRuntime.InvokeVoidAsync("reanimateAll.reanimateAll");
+    }
   }
 
   #region Received from Server
@@ -397,11 +414,11 @@
       if (correctAnswer is not null)
       {
         if (playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer)))
-          return GuessCorrectClassString;
+          return $"{GuessCorrectClassString}-{random.Next(1, 6)}";
         else if (playerDataDictionary.Values.All(x => x.PlayData.Count == 0))
           return "guess-absent";
         else
-          return GuessPresentClassString;
+          return $"{GuessPresentClassString}-{random.Next(1, 6)}";
       }
       else
         return "";
@@ -459,8 +476,8 @@
       await hubConnection.SendAsync("ClientResetCurrentSession", SessionId);
   }
 
-  private String GuessCorrectClassString => $"guess-correct{(highContrastMode ? "-hc" : "")}";
-  private String GuessPresentClassString => $"guess-present{(highContrastMode ? "-hc" : "")}";
+  private String GuessCorrectClassString => $"colored guess-correct{(highContrastMode ? "-hc" : "")}";
+  private String GuessPresentClassString => $"colored guess-present{(highContrastMode ? "-hc" : "")}";
 
   private async Task OnClosed(Exception? e)
   {
@@ -742,8 +759,8 @@
               {
                 -1 => "guess-guessing",
                 0 => "guess-absent",
-                1 => GuessPresentClassString,
-                2 => GuessCorrectClassString,
+                1 => $"{GuessPresentClassString}-{random.Next(1, 6)}",
+                2 => $"{GuessCorrectClassString}-{random.Next(1, 6)}",
                 _ => "guess-guessing"
               }
             );
