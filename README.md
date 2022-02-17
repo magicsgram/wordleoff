@@ -1,7 +1,11 @@
-Project Hosted on https://www.wordleoff.com
+**I intend to keep this free and ad-free (and open source) as long as my time and budget allow to maintain the server. It's running on a low-tier server, So I apologize for any service interruptions**
 
-W/ heavy inspiration from
-- Wordle at https://www.powerlanguage.co.uk/wordle/
+***
+WORDLEOFF is a project hosted on
+https://www.wordleoff.com
+
+with heavy inspiration from
+- Wordle at https://www.powerlanguage.co.uk/
 - Social Elements of Among Us' discussion mechanics  https://www.innersloth.com/games/among-us/
 
 ***
