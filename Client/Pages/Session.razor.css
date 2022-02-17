@@ -217,22 +217,22 @@ table {
 
 .guess-correct-2 {
   background-color: #656565;
-  animation: 0.6s linear 0.1s forwards guess-correct-frames, 0.7s linear 0.1s forwards flip-tile-frames;
+  animation: 0.7s linear forwards guess-correct-frames, 0.7s linear forwards flip-tile-frames;
 }
 
 .guess-correct-3 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-correct-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 0.8s linear forwards guess-correct-frames, 0.8s linear forwards flip-tile-frames;
 }
 
 .guess-correct-4 {
   background-color: #656565;
-  animation: 0.6s linear 0.3s forwards guess-correct-frames, 0.6s linear 0.3s forwards flip-tile-frames;
+  animation: 0.9s linear forwards guess-correct-frames, 0.9s linear forwards flip-tile-frames;
 }
 
 .guess-correct-5 {
   background-color: #656565;
-  animation: 0.6s linear 0.4s forwards guess-correct-frames, 0.6s linear 0.4s forwards flip-tile-frames;
+  animation: 1.0s linear forwards guess-correct-frames, 1.0s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-correct-frames {
@@ -259,22 +259,22 @@ table {
 
 .guess-correct-hc-2 {
   background-color: #656565;
-  animation: 0.6s linear 0.1s forwards guess-correct-hc-frames, 0.6s linear 0.1s forwards flip-tile-frames;
+  animation: 0.7 linear forwards guess-correct-hc-frames, 0.7s linear forwards flip-tile-frames;
 }
 
 .guess-correct-hc-3 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-correct-hc-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 0.8s linear forwards guess-correct-hc-frames, 0.8s linear forwards flip-tile-frames;
 }
 
 .guess-correct-hc-4 {
   background-color: #656565;
-  animation: 0.6s linear 0.3s forwards guess-correct-hc-frames, 0.6s linear 0.3s forwards flip-tile-frames;
+  animation: 0.9s linear forwards guess-correct-hc-frames, 0.9s linear forwards flip-tile-frames;
 }
 
 .guess-correct-hc-5 {
   background-color: #656565;
-  animation: 0.6s linear 0.4s forwards guess-correct-hc-frames, 0.6s linear 0.4s forwards flip-tile-frames;
+  animation: 1.0s linear forwards guess-correct-hc-frames, 1.0s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-correct-hc-frames {
@@ -301,22 +301,22 @@ table {
 
 .guess-present-2 {
   background-color: #656565;
-  animation: 0.6s linear 0.1s forwards guess-present-frames, 0.6s linear 0.1s forwards flip-tile-frames;
+  animation: 0.7s linear forwards guess-present-frames, 0.7s linear forwards flip-tile-frames;
 }
 
 .guess-present-3 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-present-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 0.8s linear forwards guess-present-frames, 0.8s linear forwards flip-tile-frames;
 }
 
 .guess-present-4 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-present-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 0.9s linear forwards guess-present-frames, 0.9s linear forwards flip-tile-frames;
 }
 
 .guess-present-5 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-present-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 1.0s linear forwards guess-present-frames, 1.0s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-present-frames {
@@ -343,22 +343,22 @@ table {
 
 .guess-present-hc-2 {
   background-color: #656565;
-  animation: 0.6s linear 0.1s forwards guess-present-frames, 0.6s linear 0.1s forwards flip-tile-frames;
+  animation: 0.7s linear forwards guess-present-frames, 0.7s linear forwards flip-tile-frames;
 }
 
 .guess-present-hc-3 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-present-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 0.8s linear forwards guess-present-frames, 0.8s linear forwards flip-tile-frames;
 }
 
 .guess-present-hc-4 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-present-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 0.9s linear forwards guess-present-frames, 0.9s linear forwards flip-tile-frames;
 }
 
 .guess-present-hc-5 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-present-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 1.0s linear forwards guess-present-frames, 1.0s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-present-hc-frames {
@@ -385,22 +385,22 @@ table {
 
 .guess-absent-2 {
   background-color: #656565;
-  animation: 0.6s linear 0.1s forwards guess-absent-frames, 0.6s linear 0.1s forwards flip-tile-frames;
+  animation: 0.7s linear forwards guess-absent-frames, 0.7s linear forwards flip-tile-frames;
 }
 
 .guess-absent-3 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-absent-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 0.8s linear forwards guess-absent-frames, 0.8s linear forwards flip-tile-frames;
 }
 
 .guess-absent-4 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-absent-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 0.9s linear forwards guess-absent-frames, 0.9s linear forwards flip-tile-frames;
 }
 
 .guess-absent-5 {
   background-color: #656565;
-  animation: 0.6s linear 0.2s forwards guess-absent-frames, 0.6s linear 0.2s forwards flip-tile-frames;
+  animation: 1.0s linear forwards guess-absent-frames, 1.0s linear forwards flip-tile-frames;
 }
 
 @keyframes guess-absent-frames {
