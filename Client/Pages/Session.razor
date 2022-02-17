@@ -551,30 +551,105 @@
                   var currentPlayerName = pairValue.Key;
                   var currentPlayerData = pairValue.Value;
                   Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
-                  Int32 emptyRowOffset = 0;
-                  if (isCurrentPlayerLocal)
-                    emptyRowOffset = 1;
                   String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
                   String borderClass = playerDataDictionary.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
                   <td>
                     <div class=@($"play-div {borderClass}")>
                       <div>@($"{currentPlayerName}{youIndicator}")</div>
                       <div class="guess-board">
-                        @for (Int32 x = 0; x < currentPlayerData.PlayData.Count; ++x)
+                        @for (Int32 x = 0; x < 6; ++x)
                         {
-                          String currentGuess = currentPlayerData.PlayData[x];
-                          @if (x == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses)
-                            @RenderTempGuessRow(currentPlayerName, currentGuess)
-                          else
-                            @RenderGuessRow(currentGuess, !isCurrentPlayerLocal && !godMode)
-                        }
-                        @if (currentPlayerData.PlayData.Count < 6 && isCurrentPlayerLocal)
-                        {
-                          @RenderGuessingRow()
-                        }
-                        @for (Int32 x = currentPlayerData.PlayData.Count + emptyRowOffset; x < 6; ++x)
-                        {
-                          @RenderEmptyRow()
+                          List<Int32> colorList = new();
+                          String currentGuess = "";
+                          List<Int32> randomOrder = new();
+                          if (x < currentPlayerData.PlayData.Count)
+                          {
+                            currentGuess = currentPlayerData.PlayData[x];
+                            Dictionary<Char, Int32> letterCountInAnswer = new();
+                            for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                            {
+                              colorList.Add(0);
+                              if (letterCountInAnswer.ContainsKey(correctAnswer[y]))
+                                ++letterCountInAnswer[correctAnswer[y]];
+                              else
+                                letterCountInAnswer.Add(correctAnswer[y], 1);
+                            }
+                            for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                              if (currentGuess[y] == correctAnswer[y])
+                              {
+                                colorList[y] = 2;
+                                --letterCountInAnswer[currentGuess[y]];
+                              }
+                            for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                              if (correctAnswer.Contains(currentGuess[y]) && letterCountInAnswer[currentGuess[y]] > 0 && colorList[y] < 1)
+                              {
+                                colorList[y] = 1;
+                                --letterCountInAnswer[currentGuess[y]];
+                              }
+                            randomOrder = (new Int32[] {1, 2, 3, 4, 5}).OrderBy(x => random.NextInt64()).ToList();
+                          }
+
+                          <div class="guess-row">
+                            @for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                            {
+                              String classesString = "";
+                              Char displayedLetter = ' ';
+                              if (x < currentPlayerData.PlayData.Count) // Guess rows
+                              {
+                                if (x == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses) // Temp guess row
+                                {
+                                  if (playerName == currentPlayerName)
+                                  {
+                                    classesString = "guess-tile guess-guessing-mine";
+                                    displayedLetter = currentGuess[y];
+                                  }
+                                  else
+                                  {
+                                    classesString = "guess-tile guess-guessing";
+                                    displayedLetter = '?';
+                                  }
+                                }
+                                else // Regular guess row
+                                {
+                                  Boolean hideLetters = !isCurrentPlayerLocal && !godMode;
+                                  String backgroundColorCSS = "";
+                                  @switch (colorList[y])
+                                  {
+                                    case 0:
+                                      backgroundColorCSS = $"guess-absent-{randomOrder[y]}";
+                                      break;
+                                    case 1:
+                                      backgroundColorCSS = $"{GuessPresentClassString}-{randomOrder[y]}";
+                                      break;
+                                    case 2:
+                                      backgroundColorCSS = $"{GuessCorrectClassString}-{randomOrder[y]}";
+                                      break;
+                                  }
+                                  classesString = $"guess-tile {backgroundColorCSS}";
+                                  displayedLetter = hideLetters ? '?' : currentGuess[y];
+                                }
+                              }
+                              else if (x == currentPlayerData.PlayData.Count && x < 6 && isCurrentPlayerLocal) // Player's guessing row
+                              {
+                                if (y < guess.Length) // Letters entered
+                                {
+                                  classesString = $"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}";
+                                  displayedLetter = guess[y];
+                                }
+                                else // Empty tiles
+                                {
+                                  classesString = "guess-tile guess-empty";
+                                  displayedLetter = ' ';
+                                }
+                              }
+                              else // Empty row
+                              {
+                                classesString = "guess-tile guess-empty";
+                                displayedLetter = ' ';
+                              }
+                              <div class=@classesString>@displayedLetter</div>
+                            }
+                          </div>
                         }
                       </div>
                     </div>
