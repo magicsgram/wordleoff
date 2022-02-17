@@ -3,7 +3,7 @@
 
 ### Feb 17th, 2022
 
-My current top priority is to save all sessions into database, so that you can play the game when the server experience outage. I originally intended this to be a proof-of-concept. So, I just saved everything onto memory. But since people showed their love, I'm gonna build a db integration, so that you don't lose your progress anymore. Your session will still be destroyed if there's no activities for X amount of time (I think 1 hour?). I'll let you know when it's released. Thank you all for your support.
+My current top priority is to save all sessions into database, so that you can play the game when the server experience short outage and come back alive. (and when you lose your connection to the internet and reconnect). I originally intended this to be a proof-of-concept. So, I just saved everything onto memory. But since people showed their love, I'm gonna build a db integration, so that you don't lose your progress anymore. Your session will still be destroyed if there's no activities for X amount of time (I think 1 hour?). I'll let you know when it's released. Thank you all for your support.
 
 ***
 WORDLEOFF is a project hosted on
