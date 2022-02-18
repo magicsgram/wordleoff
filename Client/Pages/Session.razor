@@ -28,8 +28,8 @@
     <div style="height: 20px;"></div>
     <div>
       <div class="div-margin-1">Your Name:</div>
-      <input class="div-margin-1" @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="16" />
-      <button class="div-margin-1" @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
+      <input class="div-margin-1 input-box" style="width: 150px;" @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="16" />
+      <button class="div-margin-1 button" @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
     </div>
     <div>
       @joinErrorMessage

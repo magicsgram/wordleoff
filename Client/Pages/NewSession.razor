@@ -15,9 +15,9 @@
   <div>OR type in the code your friends/family gave you</div>
   <div style="height: 10px;"></div>
   <div>
-    <input class="session-id-part" placeholder="123" @oninput="OnInput1Async" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="0" />
-    <input class="session-id-part" placeholder="456" @oninput="OnInput2Async" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="0" @ref="idPart2"/>
-    <input class="session-id-part" placeholder="789" @oninput="OnInput3" @onkeydown="OnKeyDown3" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="0" @ref="idPart3"/>
+    <input class="input-box" placeholder="123" @oninput="OnInput1Async" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="0" />
+    <input class="input-box" placeholder="456" @oninput="OnInput2Async" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="0" @ref="idPart2"/>
+    <input class="input-box" placeholder="789" @oninput="OnInput3" @onkeydown="OnKeyDown3" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="0" @ref="idPart3"/>
     <button class="button" @onclick="JoinSession" disabled="@(!IsConnected)" tabindex="0">Join</button>
   </div>
   <div style="height: 60px;"></div>

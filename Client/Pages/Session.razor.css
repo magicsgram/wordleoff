@@ -81,12 +81,6 @@ table {
   height: 50px;
 }
 
-.title-logo-row {
-  font-size: 3rem;
-  line-height: 3rem;
-  letter-spacing: 0.3rem;
-}
-
 .session-id-row {
   display: grid;
   grid-template-columns: repeat(11, 1.5fr);
