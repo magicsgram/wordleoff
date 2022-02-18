@@ -81,6 +81,7 @@
   private String playerName = "";
   private String joinErrorMessage = "";
   private String guess = "";
+  private String guessTempForRender = "";
   private String submitError = "";
   private String holdMessage = "";
   private String searchSessionMessage = "Searching....";
@@ -180,7 +181,7 @@
     sessionInitialized = true;
     if (playerDataDictionary.ContainsKey(playerName) && newPlayerDataDictionary.ContainsKey(playerName))
       if (playerDataDictionary[playerName].PlayData.Count < newPlayerDataDictionary[playerName].PlayData.Count)
-        guess = "";
+        guessTempForRender = "";
 
     playerDataDictionary = newPlayerDataDictionary;
     if (hubConnection is not null)
@@ -253,7 +254,11 @@
         return;
       }
       if (canSubmitNewGuess)
+      {
         await hubConnection.SendAsync("ClientSubmitGuess", playerName, guess.ToLower());
+        guessTempForRender = guess;
+        guess = "";
+      }
       submitError = "";
     }
   }
@@ -293,7 +298,7 @@
     if (!spectatorMode)
     {
       PlayerData playerData = playerDataDictionary[playerName];
-      if (correctAnswer is not null && playerData.PlayData.Count < 6 && !playerData.AnswerGuessCorrectly(correctAnswer) && canSubmitNewGuess)
+      if (correctAnswer is not null && playerData.PlayData.Count < 6 && !playerData.AnswerGuessCorrectly(correctAnswer) && canSubmitNewGuess && guessTempForRender.Length == 0)
       {
         if (key == "Backspace" && guess.Length > 0)
         {
@@ -639,7 +644,12 @@
                               }
                               else if (x == currentPlayerData.PlayData.Count && x < 6 && isCurrentPlayerLocal) // Player's guessing row
                               {
-                                if (y < guess.Length) // Letters entered
+                                if (guessTempForRender.Length == correctAnswer.Length)
+                                {
+                                  classesString = $"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}";
+                                  displayedLetter = guessTempForRender[y];
+                                }
+                                else if (y < guess.Length) // Letters entered
                                 {
                                   classesString = $"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}";
                                   displayedLetter = guess[y];
@@ -667,132 +677,6 @@
             </tr>
           }
         </table>
-      }
-    };
-  }
-
-  private RenderFragment RenderGuessRow(String currentGuess, Boolean hideLetters)
-  {
-    return __builder =>
-    {
-      if (correctAnswer is null)
-      {
-        <div></div>
-      }
-      else
-      {
-        List<Int32> colorList = new();
-        Dictionary<Char, Int32> letterCountInAnswer = new();
-        for (Int32 i = 0; i < correctAnswer.Length; ++i)
-        {
-          colorList.Add(0);
-          if (letterCountInAnswer.ContainsKey(correctAnswer[i]))
-            ++letterCountInAnswer[correctAnswer[i]];
-          else
-            letterCountInAnswer.Add(correctAnswer[i], 1);
-        }
-        for (Int32 i = 0; i < correctAnswer.Length; ++i)
-          if (currentGuess[i] == correctAnswer[i])
-          {
-            colorList[i] = 2;
-            --letterCountInAnswer[currentGuess[i]];
-          }
-        for (Int32 i = 0; i < correctAnswer.Length; ++i)
-          if (correctAnswer.Contains(currentGuess[i]) && letterCountInAnswer[currentGuess[i]] > 0 && colorList[i] < 1)
-          {
-            colorList[i] = 1;
-            --letterCountInAnswer[currentGuess[i]];
-          }
-        <div class="guess-row">
-          @{
-            List<Int32> randomOrder = (new Int32[] {1, 2, 3, 4, 5}).OrderBy(x => random.NextInt64()).ToList();
-          }
-          @for (Int32 i = 0; i < correctAnswer.Length; ++i)
-          {
-            Char displayChar = hideLetters ? '?' : currentGuess[i];
-            String backgroundColorCSS = "";
-            @switch (colorList[i])
-            {
-              case 0:
-                backgroundColorCSS = $"guess-absent-{randomOrder[i]}";
-                break;
-              case 1:
-                backgroundColorCSS = $"{GuessPresentClassString}-{randomOrder[i]}";
-                break;
-              case 2:
-                backgroundColorCSS = $"{GuessCorrectClassString}-{randomOrder[i]}";
-                break;
-            }
-            <div class=@($"guess-tile {backgroundColorCSS}")>@displayChar</div>
-          }
-        </div>
-      }
-    };
-  }
-
-  private RenderFragment RenderTempGuessRow(String currentPlayerName, String currentGuess)
-  {
-    return __builder =>
-    {
-      <div class="guess-row">
-        @if (playerName == currentPlayerName)
-        {
-          @foreach (Char c in currentGuess)
-          {
-            <div class="guess-tile guess-guessing-mine">@c</div>
-          }
-        }
-        else
-        {
-          @foreach (Char c in currentGuess)
-          {
-            <div class="guess-tile guess-guessing">?</div>
-          }
-        }
-      </div>
-    };
-  }
-
-  private RenderFragment RenderEmptyRow()
-  {
-    return __builder =>
-    {
-      if (correctAnswer is null)
-      {
-        <div></div>
-      }
-      else
-      {
-        <div class="guess-row">
-          @foreach (Char c in correctAnswer)
-          {
-            <div class="guess-tile guess-empty"></div>
-          }
-        </div>
-      }
-    };
-  }
-
-  private RenderFragment RenderGuessingRow()
-  {
-    return __builder =>
-    {
-      if (correctAnswer is null)
-      {
-        <div></div>
-      }
-      else
-      {
-        <div class="guess-row">
-          @for (Int32 i = 0; i < guess.Length; ++i)
-          {
-            <div class=@($"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}")>@guess[i]</div>
-          }
-          @for (Int32 i = guess.Length; i < correctAnswer.Length; ++i)
-          {
-            <div class="guess-tile guess-empty"></div>
-          }
-      </div>
       }
     };
   }
