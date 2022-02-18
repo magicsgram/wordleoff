@@ -9,6 +9,9 @@
 @implements IAsyncDisposable
 
 <div style=@($"display: {(sessionFound ? "none" : "")};") class="div-center div-center-vertical">
+  <div>
+    @RenderTitleLogo()
+  </div>
   @searchSessionMessage
   <hr />
   <div>
@@ -18,6 +21,11 @@
 </div>
 <div style=@($"display: {(!sessionInitialized && sessionFound? "" : "none")};") class="div-center">
   <div class="div-center div-center-vertical">
+    <div>
+      @RenderTitleLogo()
+      @RenderSessionId()
+    </div>
+    <div style="height: 20px;"></div>
     <div>
       <div class="div-margin-1">Your Name:</div>
       <input class="div-margin-1" @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="16" />

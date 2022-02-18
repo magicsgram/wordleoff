@@ -9,3 +9,22 @@
 .session-id-part {
   width: 40px;
 }
+
+.title-logo-row {
+  font-size: 3rem;
+  line-height: 3rem;
+  letter-spacing: 0.3rem;
+}
+
+.button {
+  font-family: arial, sans-serif;
+  background-color: #656565;
+  color: #d7dadc;
+  padding: 2px 5px;
+  font-size: 1.3rem;
+  border: 0px;
+  border-radius: 4px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+}
