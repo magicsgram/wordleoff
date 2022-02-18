@@ -23,13 +23,14 @@ public class GameSession
   private const Int32 MaxPlayers = 16;
   private const Int32 GameSessionExpireMinutes = 1;
   private const Int32 ConnectionExpireSeconds = 8;
-  private const Int32 PastAnswersMaxSize = 100;
+  private const Int32 PastAnswersMaxSize = 50;
 
   private DateTime? noPlayerSince = DateTime.Now;
 
   public String SessionId { get; set; } = "";
   public String CurrentAnswer { get { return pastAnswers.Last(); } }
   public Dictionary<String, PlayerData> PlayerDataDictionary { get; set; } = new();
+  private readonly Object playerDataDictionaryLock = new();
   private readonly Queue<String> pastAnswers = new();
   public Boolean SessionExpired
   {
@@ -66,36 +67,43 @@ public class GameSession
 
   public AddPlayerResult AddPlayer(String connectionId, String newPlayerName)
   {
-    if (PlayerDataDictionary.Count == MaxPlayers)
-      return AddPlayerResult.PlayerMaxed;
+    lock (playerDataDictionaryLock)
+    {
+      if (PlayerDataDictionary.Count == MaxPlayers)
+        return AddPlayerResult.PlayerMaxed;
 
-    if (PlayerDataDictionary.Any(pair => pair.Value.PlayData.Count > 0))
-      return AddPlayerResult.GameAlreadyStarted;
+      if (PlayerDataDictionary.Any(pair => pair.Value.PlayData.Count > 0))
+        return AddPlayerResult.GameAlreadyStarted;
 
-    if (PlayerDataDictionary.ContainsKey(newPlayerName))
-      return AddPlayerResult.PlayerNameExist;
-    
-    Int32 maxIndex = PlayerDataDictionary.Count == 0 ? 0 : PlayerDataDictionary.Values.Max(x => x.Index);
+      if (PlayerDataDictionary.ContainsKey(newPlayerName))
+        return AddPlayerResult.PlayerNameExist;
 
-    PlayerDataDictionary.Add(
-      newPlayerName,
-      new PlayerData() {
-        Index = maxIndex + 1,
-        ConnectionId = connectionId,
-        PlayData = new(),
-        DisconnectedDateTime = null
-      }
-    );
-    noPlayerSince = null;
-    return AddPlayerResult.Success;
+      Int32 maxIndex = PlayerDataDictionary.Count == 0 ? 0 : PlayerDataDictionary.Values.Max(x => x.Index);
+
+      PlayerDataDictionary.Add(
+        newPlayerName,
+        new PlayerData()
+        {
+          Index = maxIndex + 1,
+          ConnectionId = connectionId,
+          PlayData = new(),
+          DisconnectedDateTime = null
+        }
+      );
+      noPlayerSince = null;
+      return AddPlayerResult.Success;
+    }
   }
 
   public void ReconnectPlayer(String playerName, String newConnectionId)
   {
-    if (!PlayerDataDictionary.ContainsKey(playerName))
-      return;
-    PlayerDataDictionary[playerName].ConnectionId = newConnectionId;
-    PlayerDataDictionary[playerName].DisconnectedDateTime = null;
+    lock (playerDataDictionaryLock)
+    {
+      if (!PlayerDataDictionary.ContainsKey(playerName))
+        return;
+      PlayerDataDictionary[playerName].ConnectionId = newConnectionId;
+      PlayerDataDictionary[playerName].DisconnectedDateTime = null;
+    }
   }
 
   public void DisconnectPlayer(String connectionId)
@@ -111,16 +119,17 @@ public class GameSession
   public Boolean RemoveDisconnectedPlayer()
   {
     DateTime now = DateTime.Now;
-    
     var playerNamesToRemove = PlayerDataDictionary
       .Where((pair) => {
         TimeSpan disconnectedTimeSpan = now - (pair.Value.DisconnectedDateTime ?? now);
         return TimeSpan.FromSeconds(ConnectionExpireSeconds) < disconnectedTimeSpan;
       })
       .Select((pair) => pair.Key).ToList();
-
-    foreach(String playerName in playerNamesToRemove)
-      PlayerDataDictionary.Remove(playerName);
+    foreach (String playerName in playerNamesToRemove)
+      lock (playerDataDictionaryLock)
+      {
+        PlayerDataDictionary.Remove(playerName);
+      }
     if (PlayerDataDictionary.Count == 0 && playerNamesToRemove.Count > 0)
       noPlayerSince = now;
     return playerNamesToRemove.Count > 0;

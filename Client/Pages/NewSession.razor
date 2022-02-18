@@ -6,18 +6,17 @@
 <div class="div-center">
   <div class="title-logo-row">WORDLEOFF</div>
   <div style="height: 20px;"></div>
-
-  <button class="button" @onclick="CreateNewGame" disabled="@(!IsConnected)">Create a new game</button>
+  <button class="button" @onclick="CreateNewGame" disabled="@(!IsConnected)">Create a new session</button>
   <div style="height: 20px;"></div>
   <div>
     OR type in the code your friends/family gave you
   </div>
   <div style="height: 5px;"></div>
   <div>
-    <input class="session-id-part" @bind="sessionIdPart1" disabled="@(!IsConnected)" maxlength="3" tabindex="0" />
-    <input class="session-id-part" @bind="sessionIdPart2" disabled="@(!IsConnected)" maxlength="3" tabindex="1" />
-    <input class="session-id-part" @bind="sessionIdPart3" disabled="@(!IsConnected)" maxlength="3" tabindex="2" />
-    <button class="button" @onclick="JoinSession" disabled="@(!IsConnected)" tabindex="3">Join</button>
+    <input class="session-id-part" @bind="sessionIdPart1" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="0" />
+    <input class="session-id-part" @bind="sessionIdPart2" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="1" />
+    <input class="session-id-part" @bind="sessionIdPart3" disabled="@(!IsConnected)" type="text" inputmode="numeric" maxlength="3" tabindex="2" />
+    <button @onclick="JoinSession" disabled="@(!IsConnected)" tabindex="3">Join</button>
   </div>
   <div style="height: 60px;"></div>
   <a href="https://github.com/magicsgram/wordleoff">https://github.com/magicsgram/wordleoff</a>

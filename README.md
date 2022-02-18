@@ -1,11 +1,17 @@
-Project Hosted on https://www.wordleoff.com
+**I intend to keep this free and ad-free (and open source) as long as my time and budget allow to maintain the server. It's running on a low-tier server, So I apologize for any service interruptions.**
+***
 
-W/ heavy inspiration from
-- Wordle at https://www.powerlanguage.co.uk/wordle/
-- Social Elements of Among Us' discussion mechanics  https://www.innersloth.com/games/among-us/
+### Feb 17th, 2022
+
+My current top priority is to save all sessions into database, so that you can play the game when the server experience short outage and come back alive. (and when you lose your connection to the internet and reconnect). I originally intended this to be a proof-of-concept. So, I just saved everything onto memory. But since people showed their love, I'm gonna build a db integration, so that you don't lose your progress anymore. Your session will still be destroyed if there's no activities for X amount of time (I think 1 hour?). I'll let you know when it's released. Thank you all for your support.
 
 ***
-Here's my own take of a multiplayer Wordle game, called WORDLEOFF.
+WORDLEOFF is a project hosted on
+https://www.wordleoff.com
+
+with heavy inspiration from
+- Wordle at https://www.powerlanguage.co.uk/
+- Social Elements of Among Us' discussion mechanics  https://www.innersloth.com/games/among-us/
 
 Unlike some other examples I saw online, this is NOT a 'race to the answer' type of game.
 

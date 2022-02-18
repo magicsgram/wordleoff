@@ -9,7 +9,9 @@ public class WordleOffHub : Hub
   private static readonly Random random = new();
 
   private static readonly Dictionary<String, GameSession> gameSessions = new();
+  private static readonly Object gameSessionsLock = new();
   private static readonly Dictionary<String, String> connectionIdToSessionId = new();
+  private static readonly Object connectionIdToSessionIdLock = new();
 
   private static IHubCallerClients? latestClients;
 
@@ -46,7 +48,10 @@ public class WordleOffHub : Hub
     if (connectionIdToSessionId.ContainsKey(Context.ConnectionId))
     {
       gameSessions[Context.ConnectionId].DisconnectPlayer(Context.ConnectionId);
-      connectionIdToSessionId.Remove(Context.ConnectionId);
+      lock (connectionIdToSessionIdLock)
+      {
+        connectionIdToSessionId.Remove(Context.ConnectionId);
+      }
     }
 
     String newSessionId = CreateNewSession();
@@ -80,7 +85,10 @@ public class WordleOffHub : Hub
     {
       case AddPlayerResult.Success:
         await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-        connectionIdToSessionId.Add(Context.ConnectionId, sessionId);
+        lock (connectionIdToSessionIdLock)
+        {
+          connectionIdToSessionId.Add(Context.ConnectionId, sessionId);
+        }
         await SendFullWordsCompressed();
         await SendCurrentAnswer(sessionId, false);
         await SendFullGameState(sessionId);
@@ -108,7 +116,10 @@ public class WordleOffHub : Hub
       return;
     }
     await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-    connectionIdToSessionId.Add(Context.ConnectionId, sessionId);
+    lock (connectionIdToSessionIdLock)
+    {
+      connectionIdToSessionId.Add(Context.ConnectionId, sessionId);
+    }
     await SendCurrentAnswer(sessionId, false);
     await SendFullGameState(sessionId);
   }
@@ -121,7 +132,10 @@ public class WordleOffHub : Hub
       return;
     }
     await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-    connectionIdToSessionId.Add(Context.ConnectionId, sessionId);
+    lock (connectionIdToSessionIdLock)
+    {
+      connectionIdToSessionId.Add(Context.ConnectionId, sessionId);
+    }
     if (playerName != "") // Check if Spectator
       gameSessions[sessionId].ReconnectPlayer(playerName, Context.ConnectionId); // Actual Player
   }
@@ -183,13 +197,16 @@ public class WordleOffHub : Hub
 
   public String CreateNewSession()
   {
-    String newSessionId = GetNewGameSessionId();
-    gameSessions.Add(newSessionId, new GameSession(newSessionId));
+    lock (gameSessionsLock)
+    {
+      String newSessionId = GetNewGameSessionId();
+      gameSessions.Add(newSessionId, new GameSession(newSessionId));
 
-    ////For Testing Only
-    //String newSessionId = "123-123-123";
-    //gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
-    return newSessionId;
+      ////For Testing Only
+      //String newSessionId = "123-123-123";
+      //gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
+      return newSessionId;
+    }    
   }
 
   private static String GetNewGameSessionId()
@@ -235,7 +252,10 @@ public class WordleOffHub : Hub
   {
     var expiredSessions = gameSessions.Where(x => x.Value.SessionExpired);
     foreach (var pair in expiredSessions)
-      gameSessions.Remove(pair.Key);
+      lock (gameSessionsLock)
+      {
+        gameSessions.Remove(pair.Key);
+      }
   }
 
   public async override Task OnDisconnectedAsync(Exception? exception)
@@ -245,7 +265,10 @@ public class WordleOffHub : Hub
 
     String sessionId = connectionIdToSessionId[Context.ConnectionId];
     await Groups.RemoveFromGroupAsync(Context.ConnectionId, sessionId);
-    connectionIdToSessionId.Remove(Context.ConnectionId);
+    lock (connectionIdToSessionIdLock)
+    {
+      connectionIdToSessionId.Remove(Context.ConnectionId);
+    }
     gameSessions[sessionId].DisconnectPlayer(Context.ConnectionId);
     latestClients = Clients;
   }
