@@ -46,11 +46,20 @@ public class GameSession
   {
     SessionId = sessionId;
     if (answer is null)
-      answer = WordsService.NextRandomAnswer();
-    pastAnswers.Enqueue(answer);
+      SetNewRandomAnswer();
+    else
+      pastAnswers.Enqueue(answer);
   }
 
   public void ResetGame()
+  {
+    SetNewRandomAnswer();
+
+    foreach (var pair in PlayerDataDictionary)
+      pair.Value.PlayData.Clear();
+  }
+
+  private void SetNewRandomAnswer()
   {
     String newAnswer;
     do
@@ -60,9 +69,6 @@ public class GameSession
     pastAnswers.Enqueue(newAnswer);
     while (pastAnswers.Count > PastAnswersMaxSize)
       pastAnswers.Dequeue();
-
-    foreach (var pair in PlayerDataDictionary)
-      pair.Value.PlayData.Clear();
   }
 
   public AddPlayerResult AddPlayer(String connectionId, String newPlayerName)
@@ -131,7 +137,10 @@ public class GameSession
         PlayerDataDictionary.Remove(playerName);
       }
     if (PlayerDataDictionary.Count == 0 && playerNamesToRemove.Count > 0)
+    {
+      SetNewRandomAnswer();
       noPlayerSince = now;
+    }
     return playerNamesToRemove.Count > 0;
   }
 
