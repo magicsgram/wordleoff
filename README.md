@@ -17,7 +17,7 @@ Unlike some other examples I saw online, this is NOT a 'race to the answer' type
 
 All players must submit their guesses before you can submit another one, keeping everyone on the same pace and no one gets too far too fast. So yes, you can play this w/ your grandparent too. I wanted to focus more on the social mechanics, not how speedy you are at guessing answers.
 
-Get on Discord/Zoom/Skyle/Google Meets w/ your friends and family and invite them by sending them a link to your session (you can share a link by clicking on the session ID on top)
+Get on Discord/Zoom/Skype/Google Meets w/ your friends and family and invite them by sending them a link to your session (you can share a link by clicking on the session ID on top)
 - Everyone has to submit a guess until you can move on to a next guess. Pressure your peers to hurry up :)
 - Once you get the answer, you enter a 'God Mode' and get to see everyone else's guess. Tell them you can see their guesses and give them even more pressure :) :)
 - Up to 16 people can join a session simultaneously. Although possible, I do not recommend playing this on mobile if you have more than 4 people.
