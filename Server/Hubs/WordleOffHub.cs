@@ -206,7 +206,7 @@ public class WordleOffHub : Hub
       //String newSessionId = "123-123-123";
       //gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
       return newSessionId;
-    }    
+    }
   }
 
   private static String GetNewGameSessionId()

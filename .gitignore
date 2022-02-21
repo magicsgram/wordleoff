@@ -4,8 +4,6 @@ Server/bin/
 Server/obj/
 Shared/bin/
 Shared/obj/
-server-url.txt
-single_file.tar.xz
-webpublish/
 .vs/
 .DS_Store
+**/*.user
