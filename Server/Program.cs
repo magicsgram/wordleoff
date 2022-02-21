@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
+using System.Net;
 using WordleOff.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);

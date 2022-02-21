@@ -40,7 +40,7 @@ public class GameSession
       TimeSpan noPlayerTimeSpan = now - (noPlayerSince ?? now);
       return TimeSpan.FromMinutes(GameSessionExpireMinutes) < noPlayerTimeSpan;
     }
-  }
+  }  
 
   public GameSession(String sessionId, String? answer = null)
   {
@@ -126,8 +126,7 @@ public class GameSession
   {
     DateTime now = DateTime.Now;
     var playerNamesToRemove = PlayerDataDictionary
-      .Where((pair) =>
-      {
+      .Where((pair) => {
         TimeSpan disconnectedTimeSpan = now - (pair.Value.DisconnectedDateTime ?? now);
         return TimeSpan.FromSeconds(ConnectionExpireSeconds) < disconnectedTimeSpan;
       })

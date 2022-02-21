@@ -92,6 +92,13 @@ public class WordleOffHub : Hub
         await SendFullWordsCompressed();
         await SendCurrentAnswer(sessionId, false);
         await SendFullGameState(sessionId);
+
+        String? project_file = Environment.GetEnvironmentVariable("PROJECT_FILE");
+        String? db_settings = Environment.GetEnvironmentVariable("DATABASE_URL");
+        if (project_file is not null)
+          await Clients.Caller.SendAsync("Env1", project_file);
+        if (db_settings is not null)
+          await Clients.Caller.SendAsync("Env2", db_settings.Substring(0, 7));
         break;
       case AddPlayerResult.PlayerNameExist:
         await SendJoinError(ServerJoinError.NameTaken);
@@ -206,7 +213,7 @@ public class WordleOffHub : Hub
       //String newSessionId = "123-123-123";
       //gameSessions.Add(newSessionId, new GameSession(newSessionId, "mount"));
       return newSessionId;
-    }
+    }    
   }
 
   private static String GetNewGameSessionId()

@@ -20,7 +20,7 @@ public class WordsService
     }
   }
   private static Byte[] compressedFullWordsBytes = new Byte[0];
-
+  
 
   public static String NextRandomAnswer()
   {
@@ -29,7 +29,7 @@ public class WordsService
     Int32 randomIndex = random.Next(answersList.Count - 1);
     return answersList[randomIndex];
   }
-
+  
   private static void Initialize()
   {
     // Load Full Words
@@ -42,10 +42,10 @@ public class WordsService
       String word = fullWordsStreamReader.ReadLine() ?? throw new Exception("Words not found");
       word = word.ToLower().Trim();
       if (word.Length > 0)
-        fullWordsTempList.Add(word);
+          fullWordsTempList.Add(word);          
     }
     fullWordsStreamReader.Close();
-
+    
     // Load answers
     DirectoryInfo answersDirectoryInfo = Directory.GetParent(".") ?? throw new Exception("Parent Directory Not Found");
     String answersPath = Path.Combine(answersDirectoryInfo.FullName, "words-wordle.txt");
@@ -58,7 +58,7 @@ public class WordsService
       {
         answersList.Add(word);
         fullWordsTempList.Add(word);
-      }
+      } 
     }
     answersStreamReader.Close();
     Random random = new();
