@@ -4,6 +4,8 @@ Server/bin/
 Server/obj/
 Shared/bin/
 Shared/obj/
+webpublish
+**.user
 .vs/
 .DS_Store
-**/*.user
+
