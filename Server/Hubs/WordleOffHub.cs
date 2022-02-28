@@ -131,7 +131,7 @@ public class WordleOffHub : Hub
     }
   }
 
-  public async Task ClientConnectAsSpectator(String sessionId, String clientGuid)
+  public async Task ClientConnectAsSpectator(String sessionId)
   {
     GameSession? gameSession = GetGameSession(sessionId);
     if (gameSession is null)
