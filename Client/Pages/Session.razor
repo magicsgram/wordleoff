@@ -216,12 +216,14 @@
           String sessionId_playerName = await sessionStorage.GetItemAsStringAsync("wordleoff-sessionId-playerName");
           if (sessionId_playerName.Length > 12)
           {
-            restoringSession = true;
             String tempSessionId = sessionId_playerName.Substring(0, 11);
             String tempPlayerName = sessionId_playerName.Substring(12);
             playerName = tempPlayerName;
             if (tempSessionId == SessionId)
+            {
+              restoringSession = true;
               await JoinSession(true);
+            }
           }
         }
       }
