@@ -13,7 +13,6 @@ namespace WordleOff.Client.Shared
       messages.Add(ServerJoinError.SessionNotFound, "The session does not exist.");
       messages.Add(ServerJoinError.NameTaken, "The name's taken!");
       messages.Add(ServerJoinError.SessionFull, "The session is full. Try again later.");
-      messages.Add(ServerJoinError.SessionInProgress, "The session has already begun. Try again later.");
       messages.Add(ServerJoinError.CannotRestore, "Could not restore previous connection. You can still join again.");
     }
     

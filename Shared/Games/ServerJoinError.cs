@@ -5,6 +5,5 @@ public enum ServerJoinError
   SessionNotFound,
   NameTaken,
   SessionFull,
-  SessionInProgress,
   CannotRestore,
 }

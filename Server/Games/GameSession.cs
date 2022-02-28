@@ -9,7 +9,6 @@ public enum AddPlayerResult
   ConnectionRestored,
   PlayerNameExist,
   PlayerMaxed,
-  GameAlreadyStarted,
   CannotRestore,
   Unknown
 }
@@ -98,22 +97,22 @@ public class GameSession
     if (PlayerDataDictionary.Count == MaxPlayers)
       return AddPlayerResult.PlayerMaxed;
 
+    //Boolean midJoin = false;
     //if (PlayerDataDictionary.Any(pair => pair.Value.PlayData.Count > 0))
-    //  return AddPlayerResult.GameAlreadyStarted;
+    //  midJoin = true;
 
     Int32 maxIndex = PlayerDataDictionary.Count == 0 ? 0 : PlayerDataDictionary.Values.Max(x => x.Index);
 
-    PlayerDataDictionary.Add(
-      newPlayerName,
-      new PlayerData()
-      {
-        Index = maxIndex + 1,
-        ConnectionId = connectionId,
-        ClientGuid = clientGuid,
-        PlayData = new(),
-        DisconnectedDateTime = null
-      }
-    );
+    PlayerData newPlayerData = new()
+    {
+      Index = maxIndex + 1,
+      ConnectionId = connectionId,
+      ClientGuid = clientGuid,
+      PlayData = new(),
+      DisconnectedDateTime = null
+    };
+
+    PlayerDataDictionary.Add(newPlayerName, newPlayerData);
     LastUpdateAt = DateTimeOffset.UtcNow;
     return AddPlayerResult.Success;
   }

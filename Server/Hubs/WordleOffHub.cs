@@ -117,10 +117,6 @@ public class WordleOffHub : Hub
         await SendJoinErrorAsync(ServerJoinError.SessionFull);
         break;
       
-      case AddPlayerResult.GameAlreadyStarted:
-        await SendJoinErrorAsync(ServerJoinError.SessionInProgress);
-        break;
-
       case AddPlayerResult.CannotRestore:
         await SendJoinErrorAsync(ServerJoinError.CannotRestore);
         break;
