@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
-using System.Net;
+using Microsoft.EntityFrameworkCore;
 using WordleOff.Server.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +16,7 @@ builder.Services.AddResponseCompression(opts =>
 });
 #endregion
 
+#region force https redirect
 builder.Services.AddHttpsRedirection(options =>
 {
   options.HttpsPort = 443;
@@ -27,6 +28,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
   options.KnownNetworks.Clear();
   options.KnownProxies.Clear();
 });
+#endregion
 
 var app = builder.Build();
 
@@ -54,6 +56,23 @@ app.MapRazorPages();
 app.MapControllers();
 app.MapHub<WordleOffHub>("/WordleOffHub");
 app.MapFallbackToFile("index.html");
+
+WordleOffContext dbCtx = new();
+dbCtx.Database.EnsureCreated();
+foreach (GameSession gameSession in dbCtx.GameSessions!.ToList())
+{
+  gameSession.TreatAllPlayersAsDisconnected();
+  try
+  {
+    dbCtx.Update(gameSession);
+  }
+  catch { }
+}
+try
+{
+  dbCtx.SaveChanges();
+}
+catch { }
 
 app.Run();
 #endregion
