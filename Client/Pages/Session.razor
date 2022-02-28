@@ -486,7 +486,7 @@
     }    
 
     if (!behindOthers && keyExist)
-      holdMessage = "Wait until all players submit their guesses.";
+      holdMessage = "Wait until all players catch up with their guesses.";
     else if (alreadyGuessedCorrectly)
       holdMessage = $"{correctAnswer?.ToUpper()} is correct!{(playerDataDictionary.Count > 1 && !gameOver ? " Entering God Mode!" : "")}";
     else if ((!alreadyGuessedCorrectly && guessLimitReached) || spectatorMode)

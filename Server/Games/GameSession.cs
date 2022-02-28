@@ -98,8 +98,8 @@ public class GameSession
     if (PlayerDataDictionary.Count == MaxPlayers)
       return AddPlayerResult.PlayerMaxed;
 
-    if (PlayerDataDictionary.Any(pair => pair.Value.PlayData.Count > 0))
-      return AddPlayerResult.GameAlreadyStarted;
+    //if (PlayerDataDictionary.Any(pair => pair.Value.PlayData.Count > 0))
+    //  return AddPlayerResult.GameAlreadyStarted;
 
     Int32 maxIndex = PlayerDataDictionary.Count == 0 ? 0 : PlayerDataDictionary.Values.Max(x => x.Index);
 
