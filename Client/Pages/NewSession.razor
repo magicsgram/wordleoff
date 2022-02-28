@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @inject NavigationManager NavigationManager
 @inject IJSRuntime jsRuntime
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @implements IAsyncDisposable
 
 <div class="div-center">
@@ -27,6 +28,8 @@
 @code {
   private HubConnection? hubConnection;
 
+  private String clientGuid = "";
+
   private String sessionIdPart1 = "";
   private String sessionIdPart2 = "";
   private String sessionIdPart3 = "";
@@ -36,6 +39,14 @@
 
   protected override async Task OnInitializedAsync()
   {
+    if (await sessionStorage.ContainKeyAsync("wordleoff-clientGuid"))
+      clientGuid = await sessionStorage.GetItemAsync<String>("wordleoff-clientGuid");
+    else
+    {
+      clientGuid = Guid.NewGuid().ToString();
+      await sessionStorage.SetItemAsStringAsync("wordleoff-clientGuid", clientGuid);
+    }
+
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
       .Build();
@@ -87,7 +98,7 @@
   private async Task CreateNewGame()
   {
     if (hubConnection is not null)
-      await hubConnection.SendAsync("ClientCreateNewSession");
+      await hubConnection.SendAsync("ClientCreateNewSession", clientGuid);
   }
 
   private void JoinSession()

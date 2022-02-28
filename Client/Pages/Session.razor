@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using WordleOff.Shared.Games
 @inject NavigationManager NavigationManager
+@inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject IJSRuntime jsRuntime
 @implements IAsyncDisposable
 
@@ -15,7 +16,7 @@
   @searchSessionMessage
   <hr />
   <div>
-      Go to <span class="wordleoff-dot-com" @onclick="NavigateToNewGameScreen">https://www.wordleoff.com/</span>
+      Go to <span class="wordleoff-dot-com" @onclick="NavigateToNewGameScreen">@(NavigationManager.BaseUri)</span>
       <br />to start/join a new session
   </div>
 </div>
@@ -26,7 +27,7 @@
       @RenderSessionId()
     </div>
     <div style="height: 20px;"></div>
-    <div>
+    <div style=@($"display: {(restoringSession ? "none" : "")};")>
       <div class="div-margin-1">Your Name:</div>
       <input class="div-margin-1 input-box" style="width: 150px;" placeholder="Your name..."  @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="16" />
       <button class="div-margin-1 button" @onclick="JoinSession" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
@@ -36,7 +37,7 @@
     </div>
     <hr />
     <div>
-      Go to <span class="wordleoff-dot-com" @onclick="NavigateToNewGameScreen">https://www.wordleoff.com/</span>
+      Go to <span class="wordleoff-dot-com" @onclick="NavigateToNewGameScreen">@(NavigationManager.BaseUri)</span>
       <br />to start/join a new session
     </div>
   </div>
@@ -95,6 +96,7 @@
   Boolean allPlayersAtMaxGuesses = false;
   private Boolean gameOver = false;
   private Boolean sessionInitialized = false;
+  private Boolean restoringSession = false;
   private Boolean sessionFound = false;
   private Boolean godMode = false;
   private HashSet<String> fullWords = new();
@@ -110,6 +112,7 @@
   private Dictionary<String, PlayerData> playerDataDictionary = new();
   private Random random = new();
   private ElementReference gameDiv;
+  private String clientGuid = "";
   private Boolean _highContrastMode = false;
   private Boolean highContrastModeChanged = false;
   private Boolean highContrastMode
@@ -132,6 +135,14 @@
 
     BrowserResizeService.OnResize += HandleBrowserResize;
     await jsRuntime.InvokeVoidAsync("browserResize.registerResizeCallback");
+
+    if (await sessionStorage.ContainKeyAsync("wordleoff-clientGuid"))
+      clientGuid = await sessionStorage.GetItemAsync<String>("wordleoff-clientGuid");
+    else
+    {
+      clientGuid = Guid.NewGuid().ToString();
+      await sessionStorage.SetItemAsStringAsync("wordleoff-clientGuid", clientGuid);
+    }
 
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
@@ -179,17 +190,14 @@
   public async Task UpdatePlayerData(Dictionary<String, PlayerData> newPlayerDataDictionary)
   {
     sessionInitialized = true;
+    await sessionStorage.SetItemAsStringAsync("wordleoff-sessionId-playerName", $"{SessionId}:{playerName}");
+
     if (playerDataDictionary.ContainsKey(playerName) && newPlayerDataDictionary.ContainsKey(playerName))
       if (playerDataDictionary[playerName].PlayData.Count < newPlayerDataDictionary[playerName].PlayData.Count)
         guessTempForRender = "";
 
     playerDataDictionary = newPlayerDataDictionary;
-    if (hubConnection is not null)
-    {
-      if (!spectatorMode)
-        playerName = playerDataDictionary.First(x => x.Value.ConnectionId == hubConnection.ConnectionId).Key;
-      UpdateGameStates();
-    }
+    UpdateGameStates();
     await HandleBrowserResize();
     await jsRuntime.InvokeVoidAsync("setFocusToElement", gameDiv);
   }
@@ -198,9 +206,25 @@
   {
     if (result)
     {
-      sessionFound = true;
-      if (spectatorMode && hubConnection is not null)
-        await hubConnection.SendAsync("ClientConnectAsSpectator", SessionId);
+      if (hubConnection is not null)
+      {
+        sessionFound = true;
+        if (spectatorMode)
+          await hubConnection.SendAsync("ClientConnectAsSpectator", SessionId);
+        else if (await sessionStorage.ContainKeyAsync("wordleoff-sessionId-playerName"))
+        {
+          String sessionId_playerName = await sessionStorage.GetItemAsStringAsync("wordleoff-sessionId-playerName");
+          if (sessionId_playerName.Length > 12)
+          {
+            restoringSession = true;
+            String tempSessionId = sessionId_playerName.Substring(0, 11);
+            String tempPlayerName = sessionId_playerName.Substring(12);
+            playerName = tempPlayerName;
+            if (tempSessionId == SessionId)
+              await JoinSession(true);
+          }
+        }
+      }
     }
     else
       searchSessionMessage = $"Session {SessionId} not found!!";
@@ -209,6 +233,7 @@
 
   public void DisplayJoinErrorMessage(ServerJoinError error)
   {
+    restoringSession = false;
     joinErrorMessage = ServerJoinErrorMessages.Maps[error];
     StateHasChanged();
   }
@@ -218,21 +243,18 @@
 
   #region Send to Server
 
-  public async Task JoinSession()
+  public async Task JoinSession() => await JoinSession(false);
+
+  public async Task JoinSession(Boolean restore)
   {
     if (playerName.Length == 0)
     {
       joinErrorMessage = "You name cannot be empty!";
       return;
     }
-    if (hubConnection is not null)
-      await hubConnection.SendAsync("ClientConnectNew", SessionId, playerName);
-  }
 
-  public async Task UpdatePlayerName()
-  {
     if (hubConnection is not null)
-      await hubConnection.SendAsync("ClientUpdatePlayerName", playerName);
+      await hubConnection.SendAsync("ClientConnectNew", SessionId, clientGuid, playerName, restore, true);
   }
 
   public async Task SubmitGuess()
@@ -281,7 +303,7 @@
   public async Task Reconnect()
   {
     if (hubConnection is not null)
-      await hubConnection.SendAsync("ClientReconnect", SessionId, playerName);
+      await hubConnection.SendAsync("ClientReconnect", SessionId, playerName, spectatorMode);
   }
 
   public void UpdateCurrentAnswer(String newCorrectAnswer) => correctAnswer = newCorrectAnswer;
@@ -298,7 +320,7 @@
     if (!spectatorMode)
     {
       PlayerData playerData = playerDataDictionary[playerName];
-      if (correctAnswer is not null && playerData.PlayData.Count < 6 && !playerData.AnswerGuessCorrectly(correctAnswer) && canSubmitNewGuess && guessTempForRender.Length == 0)
+      if (correctAnswer is not null && playerData.PlayData.Count < 6 && !playerData.AnswerGuessedCorrectly(correctAnswer) && canSubmitNewGuess && guessTempForRender.Length == 0)
       {
         if (key == "Backspace" && guess.Length > 0)
         {
@@ -394,7 +416,7 @@
 
   public async Task CopyUrlToClipboard()
   {
-    await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", $"https://www.wordleoff.com/game/{SessionId}");
+    await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", NavigationManager.ToAbsoluteUri($"game/{SessionId}"));
     copyIdMessage = " (Copied!!!)";
     copyUrlTimer = new(5000);
     copyUrlTimer.AutoReset = false;
@@ -426,7 +448,7 @@
     {
       if (correctAnswer is not null)
       {
-        if (playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer)))
+        if (playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessedCorrectly(correctAnswer)))
           return $"{GuessCorrectClassString}-{random.Next(1, 6)}";
         else if (playerDataDictionary.Values.All(x => x.PlayData.Count == 0))
           return "guess-absent";
@@ -448,23 +470,23 @@
     keyExist = playerDataDictionary.ContainsKey(playerName);
     if (keyExist && correctAnswer is not null)
     {
-      if (playerDataDictionary[playerName].AnswerGuessCorrectly(correctAnswer))
+      if (playerDataDictionary[playerName].AnswerGuessedCorrectly(correctAnswer))
         alreadyGuessedCorrectly = true;
       Int32 myGuessCount = playerDataDictionary[playerName].PlayData.Count;
       behindOthers = playerDataDictionary.Values.All((x) =>
       {
-        return x.AnswerGuessCorrectly(correctAnswer)
+        return x.AnswerGuessedCorrectly(correctAnswer)
                 || x.PlayData.Count >= myGuessCount;
       });
       guessLimitReached = playerDataDictionary[playerName].PlayData.Count == 6;
 
       maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
-      allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
-      gameOver = playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessCorrectly(correctAnswer));
+      allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessedCorrectly(correctAnswer));
+      gameOver = playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessedCorrectly(correctAnswer));
     }    
 
     if (!behindOthers && keyExist)
-      holdMessage = "Wait until all players submit their guesses.";
+      holdMessage = "Wait until all players catch up";
     else if (alreadyGuessedCorrectly)
       holdMessage = $"{correctAnswer?.ToUpper()} is correct!{(playerDataDictionary.Count > 1 && !gameOver ? " Entering God Mode!" : "")}";
     else if ((!alreadyGuessedCorrectly && guessLimitReached) || spectatorMode)
@@ -699,7 +721,7 @@
           for (Char c = 'a'; c <= 'z'; ++c)
             letterTileValues.Add(c, -1);
           Int32 maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
-          Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessCorrectly(correctAnswer));
+          Boolean allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessedCorrectly(correctAnswer));
           Boolean includeLast = (canSubmitNewGuess || (alreadyGuessedCorrectly && allPlayersAtMaxGuesses) || gameOver);
 
           Int32 playDataLimit = playData.Count - (includeLast ? 0 : 1);

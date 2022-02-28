@@ -7,7 +7,6 @@ public class WordsService
 {
   private static Boolean initialized = false;
   private static Random random = new();
-
   private static List<String> answersList = new();
   private static HashSet<String> fullWordsSet = new();
   public static Byte[] CompressedFullWordsBytes
