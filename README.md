@@ -1,3 +1,6 @@
+**I intend to keep this free and ad-free (and open source) as long as my time and budget allow to maintain the server. It's running on a low-tier server, So I apologize for any service interruptions.**
+***
+
 WORDLEOFF is a project hosted on
 https://www.wordleoff.com
 
@@ -17,9 +20,6 @@ Get on Discord/Zoom/Skype/Google Meets w/ your friends and family and invite the
 
 Enjoy and let me know if you have any questions, feedbacks, etc.
 
-**I intend to keep this free and ad-free (and open source) as long as my time and budget allow to maintain the server. It's running on a low-tier server, So I apologize for any service interruptions.**
-***
-
 ***Some thoughts if you ever played a game called 'Among Us'.***
 
 I freaking love the voting mechanics in 'Among Us', as there's so much tension and pressure to 'vote' on Imposters. Also, after the imposters kill you and you know who they are, it gets even more interesting because you get to spectate how other people struggle in search of them.
@@ -28,7 +28,7 @@ WORDLEOFF is loosely around this idea and it's much more fun if you're on voice 
 
 
 ***
-Changelog Archive
+Changelog
 
 #### Feb 17th, 2022
 My current top priority is to save all sessions into database, so that you can play the game when the server experience short outage and come back alive. (and when you lose your connection to the internet and reconnect). I originally intended this to be a proof-of-concept. So, I just saved everything onto memory. But since people showed their love, I'm gonna build a db integration, so that you don't lose your progress anymore. Your session will still be destroyed if there's no activities for X amount of time (I think 1 hour?). I'll let you know when it's released. Thank you all for your support.
