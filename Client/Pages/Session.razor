@@ -210,7 +210,10 @@
       {
         sessionFound = true;
         if (spectatorMode)
+        {
+          restoringSession = true;
           await hubConnection.SendAsync("ClientConnectAsSpectator", SessionId);
+        }
         else if (await sessionStorage.ContainKeyAsync("wordleoff-sessionId-playerName"))
         {
           String sessionId_playerName = await sessionStorage.GetItemAsStringAsync("wordleoff-sessionId-playerName");
