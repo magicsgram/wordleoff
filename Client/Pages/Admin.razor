@@ -16,7 +16,7 @@
           Player Count: @gameSession.PlayerDataDictionary.Count
         </div>
         <div>
-          Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}"))</a>
+          Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))</a>
         </div>
         <div>
           Past Answers: @String.Join(" - ", gameSession.PastAnswers.ToArray())
