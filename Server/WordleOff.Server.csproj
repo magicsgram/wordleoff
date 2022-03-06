@@ -21,5 +21,9 @@
     <ProjectReference Include="..\Shared\WordleOff.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 
 </Project>

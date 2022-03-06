@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
-using System.ComponentModel.DataAnnotations.Schema;
 using WordleOff.Shared.Games;
 
 namespace WordleOff.Server.Hubs;
@@ -46,7 +45,7 @@ public class WordleOffHub : Hub
   protected override void Dispose(Boolean disposing)
   {
     base.Dispose(disposing);
-    Console.WriteLine("disposing");
+    dbCtx.Dispose();
   }
 
   #region Received from Client
@@ -244,6 +243,12 @@ public class WordleOffHub : Hub
       }
       catch (Exception) { break; }
     }
+  }
+
+  public async Task ClientAdminInfo(String adminKey)
+  {
+    if (adminKey == Environment.GetEnvironmentVariable("ADMIN_KEY"))
+      await Clients.Caller.SendAsync("ServerAdminInfo", await dbCtx.GameSessions!.ToListAsync());
   }
 
   #endregion

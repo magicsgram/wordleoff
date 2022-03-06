@@ -13,7 +13,8 @@
       "launchBrowser": true,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "DATABASE_URL": "postgres://postgres:postgres@localhost:5432/wordleoffdb"
+        "DATABASE_URL": "postgres://postgres:postgres@localhost:5432/wordleoffdb",
+        "ADMIN_KEY": "test"
       }
     },
     "WordleOff.Server": {

@@ -12,7 +12,7 @@ using WordleOff.Server.Hubs;
 namespace WordleOff.Server.Migrations
 {
     [DbContext(typeof(WordleOffContext))]
-    [Migration("20220306162115_InitialCreate")]
+    [Migration("20220306170110_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -29,7 +29,7 @@ namespace WordleOff.Server.Migrations
                     b.Property<string>("SessionId")
                         .HasColumnType("text");
 
-                    b.Property<DateTimeOffset?>("LastUpdateAt")
+                    b.Property<DateTimeOffset?>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PastAnswers")
@@ -39,6 +39,9 @@ namespace WordleOff.Server.Migrations
                     b.Property<string>("PlayerDataDictionary")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()

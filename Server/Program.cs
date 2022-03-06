@@ -58,7 +58,10 @@ app.MapHub<WordleOffHub>("/WordleOffHub");
 app.MapFallbackToFile("index.html");
 
 WordleOffContext dbCtx = new();
-dbCtx.Database.EnsureCreated();
+dbCtx.Database.Migrate();
+dbCtx.SaveChanges();
+
+dbCtx = new();
 foreach (GameSession gameSession in dbCtx.GameSessions!.ToList())
 {
   gameSession.TreatAllPlayersAsDisconnected(out Boolean updated);

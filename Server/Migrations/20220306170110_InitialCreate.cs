@@ -16,7 +16,8 @@ namespace WordleOff.Server.Migrations
                     SessionId = table.Column<string>(type: "text", nullable: false),
                     PlayerDataDictionary = table.Column<string>(type: "jsonb", nullable: false),
                     PastAnswers = table.Column<string>(type: "jsonb", nullable: false),
-                    LastUpdateAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
                     xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false)
                 },
                 constraints: table =>

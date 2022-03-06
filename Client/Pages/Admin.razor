@@ -1,0 +1,61 @@
+﻿@page "/admin"
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.WebUtilities
+@using WordleOff.Shared.Games
+@inject NavigationManager NavigationManager
+
+<table>
+  @foreach (GameSession gameSession in gameSessions)
+  {
+    <tr>
+      <td>
+        <div>
+          Session ID: @gameSession.SessionId;
+        </div>
+        <div>
+          Player Count: @gameSession.PlayerDataDictionary.Count
+        </div>
+        <div>
+          Link: <a href=@($"https://www.wordleoff.com/game/{gameSession.SessionId}")>@($"https://www.wordleoff.com/game/{gameSession.SessionId}")</a>
+        </div>
+        <div>
+          Past Answers: @String.Join(" - ", gameSession.PastAnswers.ToArray())
+        </div>
+        <div>
+          Created: @gameSession.CreatedAt
+        </div>
+        <div>
+          Updated: @gameSession.UpdatedAt
+        </div>
+        <hr />
+      </td>
+    </tr>
+  }
+</table>
+
+
+@code {
+  private List<GameSession> gameSessions = new();
+
+  private HubConnection? hubConnection;
+
+  protected override async Task OnInitializedAsync()
+  {
+    hubConnection = new HubConnectionBuilder()
+     .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
+     .Build();
+    hubConnection.On<List<GameSession>>("ServerAdminInfo", (newGameSessions) => ServerAdminInfo(newGameSessions));
+    await hubConnection.StartAsync();
+
+    var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
+    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("key", out var adminKey))
+      await hubConnection.InvokeAsync("ClientAdminInfo", adminKey.ToString());
+  }
+
+  private void ServerAdminInfo(List<GameSession> newGameSessions)
+  {
+    var sorted = newGameSessions.OrderBy(x => x.SessionId).OrderByDescending(x => x.PlayerDataDictionary.Count);
+    gameSessions = sorted.ToList();
+    StateHasChanged();
+  }
+}

@@ -27,7 +27,7 @@ namespace WordleOff.Server.Migrations
                     b.Property<string>("SessionId")
                         .HasColumnType("text");
 
-                    b.Property<DateTimeOffset?>("LastUpdateAt")
+                    b.Property<DateTimeOffset?>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PastAnswers")
@@ -37,6 +37,9 @@ namespace WordleOff.Server.Migrations
                     b.Property<string>("PlayerDataDictionary")
                         .IsRequired()
                         .HasColumnType("jsonb");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<uint>("xmin")
                         .IsConcurrencyToken()

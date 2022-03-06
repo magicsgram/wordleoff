@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using WordleOff.Shared.Games;
 
-namespace WordleOff.Server.Hubs;
+namespace WordleOff.Shared.Games;
 
 public enum AddPlayerResult
 {
