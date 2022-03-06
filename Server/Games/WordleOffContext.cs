@@ -37,7 +37,9 @@ public class WordleOffContext : DbContext
 
   protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
   {
-    String databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL")!;
+    String? databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (databaseUrl is null)
+      databaseUrl = "postgres://postgres:postgres@localhost:5432/wordleoffdb";
     Uri uri = new(databaseUrl);
     String[] userInfoPart = uri.UserInfo.Split(':');
 

@@ -140,7 +140,7 @@ public class GameSession
   public void TreatAllPlayersAsDisconnected(out Boolean updated)
   { // This is useful when the server restarts and everyone needs to connect again
     DateTimeOffset now = DateTimeOffset.UtcNow ; 
-    DateTimeOffset oneMinuteFromNow = now + TimeSpan.FromMinutes(1); // Give extra time for people to reconnect
+    DateTimeOffset oneMinuteFromNow = now + TimeSpan.FromSeconds(30); // Give extra time for people to reconnect
     updated = false;
     foreach (var pair in PlayerDataDictionary)
       if (pair.Value.DisconnectedDateTime is null)
