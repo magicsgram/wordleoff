@@ -24,7 +24,6 @@ public class GameSession
 {
   private const Int32 MaxPlayers = 16;
   private const Int32 GameSessionExpireMinutes = 120;
-  private const Int32 ConnectionExpireSeconds = 30;
   private const Int32 PastAnswersMaxSize = 50;
 
   [Key]
@@ -32,6 +31,9 @@ public class GameSession
   public Dictionary<String, PlayerData> PlayerDataDictionary { get; set; } = new();
   public Queue<String> PastAnswers { get; set; } = new();
   public DateTimeOffset? LastUpdateAt { get; set; } = DateTimeOffset.UtcNow;
+#pragma warning disable IDE1006 // Naming Styles
+  public UInt32 xmin { get; set; }
+#pragma warning restore IDE1006 // Naming Styles
 
   public String CurrentAnswer { get { return PastAnswers.Last(); } }
   public Boolean SessionExpired
@@ -117,12 +119,13 @@ public class GameSession
     return AddPlayerResult.Success;
   }
 
-  public void ReconnectPlayer(String playerName, String newConnectionId)
+  public Boolean ReconnectPlayer(String playerName, String newConnectionId)
   {
     if (!PlayerDataDictionary.ContainsKey(playerName))
-      return;
+      return false;
     PlayerDataDictionary[playerName].ConnectionId = newConnectionId;
     PlayerDataDictionary[playerName].DisconnectedDateTime = null;
+    return true;
   }
 
   public void DisconnectPlayer(String connectionId)
@@ -137,12 +140,18 @@ public class GameSession
     }
   }
 
-  public void TreatAllPlayersAsDisconnected()
+  public void TreatAllPlayersAsDisconnected(out Boolean updated)
   { // This is useful when the server restarts and everyone needs to connect again
-    DateTimeOffset now = DateTimeOffset.UtcNow;
+    DateTimeOffset now = DateTimeOffset.UtcNow ; 
+    DateTimeOffset oneMinuteFromNow = now + TimeSpan.FromMinutes(1); // Give extra time for people to reconnect
+    updated = false;
     foreach (var pair in PlayerDataDictionary)
-      pair.Value.DisconnectedDateTime = now;
-    LastUpdateAt = now;
+      if (pair.Value.DisconnectedDateTime is null)
+      {
+        pair.Value.DisconnectedDateTime = oneMinuteFromNow;
+        updated = true;
+        LastUpdateAt = now;
+      }
   }
 
   public Boolean RemoveDisconnectedPlayer()
@@ -151,7 +160,7 @@ public class GameSession
     var playerNamesToRemove = PlayerDataDictionary
       .Where((pair) => {
         TimeSpan disconnectedTimeSpan = now - (pair.Value.DisconnectedDateTime ?? now);
-        return TimeSpan.FromSeconds(ConnectionExpireSeconds) < disconnectedTimeSpan;
+        return TimeSpan.FromSeconds(CommonValues.ConnectionExpireSeconds) < disconnectedTimeSpan;
       })
       .Select((pair) => pair.Key).ToList();
     foreach (String playerName in playerNamesToRemove)
@@ -174,6 +183,7 @@ public class GameSession
     if (PlayerDataDictionary[playerName].PlayData.Count >= 6)
       return EnterWordResult.MaxGuesses;
     PlayerDataDictionary[playerName].PlayData.Add(word);
+    PlayerDataDictionary[playerName].DisconnectedDateTime = null;
     return EnterWordResult.Success;
   }
 }

@@ -61,12 +61,15 @@ WordleOffContext dbCtx = new();
 dbCtx.Database.EnsureCreated();
 foreach (GameSession gameSession in dbCtx.GameSessions!.ToList())
 {
-  gameSession.TreatAllPlayersAsDisconnected();
-  try
+  gameSession.TreatAllPlayersAsDisconnected(out Boolean updated);
+  if (updated)
   {
-    dbCtx.Update(gameSession);
-  }
-  catch { }
+    try
+    {
+      dbCtx.Update(gameSession);
+    }
+    catch { }
+  }  
 }
 try
 {

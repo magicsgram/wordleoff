@@ -93,7 +93,7 @@
   private Boolean guessLimitReached = false;
   private Boolean spectatorMode = false;
   private Int32 maxGuessesAmongPlayers = 0;
-  Boolean allPlayersAtMaxGuesses = false;
+  private Boolean allPlayersAtMaxGuesses = false;
   private Boolean gameOver = false;
   private Boolean sessionInitialized = false;
   private Boolean restoringSession = false;
@@ -108,6 +108,8 @@
   private Int32 tableY = 0;
   private System.Timers.Timer? copyUrlTimer;
   private System.Timers.Timer? invalidGuessTimer;
+  private System.Timers.Timer? tableRerenderTimer;
+  private DateTimeOffset utcNow = DateTimeOffset.UtcNow;
   private Boolean invalidGuessTriggerAnimation = false;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
   private Random random = new();
@@ -143,6 +145,18 @@
       clientGuid = Guid.NewGuid().ToString();
       await sessionStorage.SetItemAsStringAsync("wordleoff-clientGuid", clientGuid);
     }
+
+    tableRerenderTimer = new(1000);
+    tableRerenderTimer.AutoReset = true;
+    tableRerenderTimer.Elapsed += async (sender, e) =>
+    {
+      await Task.Run(() =>
+      {
+        utcNow = DateTimeOffset.UtcNow;
+        StateHasChanged();
+      });
+    };
+    tableRerenderTimer.Start();
 
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
@@ -592,10 +606,22 @@
                   var currentPlayerData = pairValue.Value;
                   Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
                   String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
+                  String disconnectedPlayerMessage = "";
+                  if (currentPlayerData.DisconnectedDateTime is not null)
+                  {
+                    TimeSpan disconnectedSince = (TimeSpan)(utcNow - currentPlayerData.DisconnectedDateTime);
+                    if (disconnectedSince > TimeSpan.FromSeconds(5))
+                    {
+                      TimeSpan timeLeft = TimeSpan.FromSeconds(CommonValues.ConnectionExpireSeconds) - disconnectedSince;
+                      if (timeLeft < TimeSpan.Zero)
+                        timeLeft = TimeSpan.Zero;
+                      disconnectedPlayerMessage = $" (Connection lost. Removed in {(Int32)timeLeft.TotalSeconds} secs)";
+                    }
+                  }
                   String borderClass = playerDataDictionary.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
                   <td>
                     <div class=@($"play-div {borderClass}")>
-                      <div>@($"{currentPlayerName}{youIndicator}")</div>
+                      <div>@($"{currentPlayerName}{youIndicator}{disconnectedPlayerMessage}")</div>
                       <div class="guess-board">
                         @for (Int32 x = 0; x < 6; ++x)
                         {
