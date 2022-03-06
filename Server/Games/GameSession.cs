@@ -31,9 +31,6 @@ public class GameSession
   public Dictionary<String, PlayerData> PlayerDataDictionary { get; set; } = new();
   public Queue<String> PastAnswers { get; set; } = new();
   public DateTimeOffset? LastUpdateAt { get; set; } = DateTimeOffset.UtcNow;
-#pragma warning disable IDE1006 // Naming Styles
-  public UInt32 xmin { get; set; }
-#pragma warning restore IDE1006 // Naming Styles
 
   public String CurrentAnswer { get { return PastAnswers.Last(); } }
   public Boolean SessionExpired

@@ -3,6 +3,7 @@
 @using System.IO.Compression
 @using System.Text
 @using Microsoft.AspNetCore.WebUtilities
+@using System.Diagnostics
 @using WordleOff.Shared.Games
 @inject NavigationManager NavigationManager
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
@@ -109,7 +110,10 @@
   private System.Timers.Timer? copyUrlTimer;
   private System.Timers.Timer? invalidGuessTimer;
   private System.Timers.Timer? tableRerenderTimer;
-  private DateTimeOffset utcNow = DateTimeOffset.UtcNow;
+  private DateTimeOffset utcNowFromServerAfterSessionFound = DateTimeOffset.UtcNow;
+  private DateTimeOffset currentServerTimeEstimate = DateTimeOffset.UtcNow;
+  private Stopwatch serverTimeStopWatch = new();
+  private TimeSpan myComputerUtcTimeDiff = TimeSpan.Zero;
   private Boolean invalidGuessTriggerAnimation = false;
   private Dictionary<String, PlayerData> playerDataDictionary = new();
   private Random random = new();
@@ -146,17 +150,7 @@
       await sessionStorage.SetItemAsStringAsync("wordleoff-clientGuid", clientGuid);
     }
 
-    tableRerenderTimer = new(1000);
-    tableRerenderTimer.AutoReset = true;
-    tableRerenderTimer.Elapsed += async (sender, e) =>
-    {
-      await Task.Run(() =>
-      {
-        utcNow = DateTimeOffset.UtcNow;
-        StateHasChanged();
-      });
-    };
-    tableRerenderTimer.Start();
+    await jsRuntime.InvokeVoidAsync("setTitle", "WORDLEOFF - Lobby");
 
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
@@ -167,7 +161,7 @@
     hubConnection.On<Dictionary<String, PlayerData>>("ServerPlayerData", async (newPlayerDataDictionary) => await UpdatePlayerData(newPlayerDataDictionary));
     hubConnection.On<String>("ServerCurrentAnswer", (correctAnswer) => UpdateCurrentAnswer(correctAnswer));
     hubConnection.On<ServerJoinError>("ServerJoinError", (error) => DisplayJoinErrorMessage(error));
-    hubConnection.On<Boolean>("ServerSessionFindResult", (result) => HandleSessionFindResult(result));
+    hubConnection.On<Boolean, DateTimeOffset>("ServerSessionFindResult", (result, utcNow) => HandleSessionFindResult(result, utcNow));
 
     await hubConnection.StartAsync();
 
@@ -179,7 +173,7 @@
     if (highContrastModeChanged)
     {
       highContrastModeChanged = false;
-      await jsRuntime.InvokeVoidAsync("reanimateAll.reanimateAll");
+      await jsRuntime.InvokeVoidAsync("reanimateAll");
     }
   }
 
@@ -203,7 +197,11 @@
 
   public async Task UpdatePlayerData(Dictionary<String, PlayerData> newPlayerDataDictionary)
   {
-    sessionInitialized = true;
+    if (!sessionInitialized)
+    {
+      sessionInitialized = true;
+      await jsRuntime.InvokeVoidAsync("setTitle", "WORDLEOFF - Playing");
+    }
     await sessionStorage.SetItemAsStringAsync("wordleoff-sessionId-playerName", $"{SessionId}:{playerName}");
 
     if (playerDataDictionary.ContainsKey(playerName) && newPlayerDataDictionary.ContainsKey(playerName))
@@ -216,12 +214,27 @@
     await jsRuntime.InvokeVoidAsync("setFocusToElement", gameDiv);
   }
 
-  public async Task HandleSessionFindResult(Boolean result)
+  public async Task HandleSessionFindResult(Boolean result, DateTimeOffset utcNow)
   {
     if (result)
     {
       if (hubConnection is not null)
       {
+        utcNowFromServerAfterSessionFound = utcNow;
+        serverTimeStopWatch.Reset();
+        serverTimeStopWatch.Start();
+        tableRerenderTimer = new(1000);
+        tableRerenderTimer.AutoReset = true;
+        tableRerenderTimer.Elapsed += async (sender, e) =>
+        {
+          await Task.Run(() =>
+          {
+            currentServerTimeEstimate = utcNowFromServerAfterSessionFound + serverTimeStopWatch.Elapsed;
+            StateHasChanged();
+          });
+        };
+        tableRerenderTimer.Start();
+
         sessionFound = true;
         if (spectatorMode)
         {
@@ -609,13 +622,14 @@
                   String disconnectedPlayerMessage = "";
                   if (currentPlayerData.DisconnectedDateTime is not null)
                   {
-                    TimeSpan disconnectedSince = (TimeSpan)(utcNow - currentPlayerData.DisconnectedDateTime);
-                    if (disconnectedSince > TimeSpan.FromSeconds(5))
+                    
+                    TimeSpan disconnectedSince = (TimeSpan)(currentServerTimeEstimate - currentPlayerData.DisconnectedDateTime);
+                    if (disconnectedSince > TimeSpan.FromSeconds(5)) // Don't show if disconnected for less than 5 seconds.
                     {
                       TimeSpan timeLeft = TimeSpan.FromSeconds(CommonValues.ConnectionExpireSeconds) - disconnectedSince;
                       if (timeLeft < TimeSpan.Zero)
                         timeLeft = TimeSpan.Zero;
-                      disconnectedPlayerMessage = $" (Connection lost. Removed in {(Int32)timeLeft.TotalSeconds} secs)";
+                      disconnectedPlayerMessage = $" (Timeout: {(Int32)timeLeft.TotalSeconds} secs)";
                     }
                   }
                   String borderClass = playerDataDictionary.Count > 1 && playerName == currentPlayerName ? "my-board" : "";

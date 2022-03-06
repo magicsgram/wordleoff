@@ -17,13 +17,15 @@ window.setFocusToElement = (element) => {
   element.focus();
 };
 
-window.reanimateAll = {
-  reanimateAll: function () {
-    document.querySelectorAll('.colored').forEach(function (tile) {
-      tile.style.animation = "none";
-      setTimeout(function () {
-        tile.style.animation = '';
-      }, 1);
-    });
-  }
+window.reanimateAll = () => {
+  document.querySelectorAll('.colored').forEach(function (tile) {
+    tile.style.animation = "none";
+    setTimeout(function () {
+      tile.style.animation = '';
+    }, 1);
+  });
+};
+
+window.setTitle = (title) => {
+  document.title = title;
 };

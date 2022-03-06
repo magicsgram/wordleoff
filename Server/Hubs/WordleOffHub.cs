@@ -112,7 +112,8 @@ public class WordleOffHub : Hub
     }
   }
 
-  public async Task ClientSearchSession(String sessionId) => await Clients.Caller.SendAsync("ServerSessionFindResult", GameSessionExist(sessionId));
+  public async Task ClientSearchSession(String sessionId)
+    => await Clients.Caller.SendAsync("ServerSessionFindResult", GameSessionExist(sessionId), DateTimeOffset.UtcNow);
 
   public async Task ClientConnectNew(String sessionId, String clientGuid, String newPlayerName, Boolean restore, Boolean requestFullWords)
   {
