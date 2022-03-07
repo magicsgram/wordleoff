@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using WordleOff.Server.Hubs;
+using WordleOff.Shared.Games;
 
 var builder = WebApplication.CreateBuilder(args);
 

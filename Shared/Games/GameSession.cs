@@ -23,7 +23,7 @@ public class GameSession
 {
   private const Int32 MaxPlayers = 16;
   private const Int32 GameSessionExpireMinutes = 120;
-  private const Int32 PastAnswersMaxSize = 50;
+  private const Int32 PastAnswersMaxSize = 100;
 
   [Key]
   public String SessionId { get; set; } = "";
@@ -41,14 +41,14 @@ public class GameSession
       TimeSpan sinceLastUpdate = now - (UpdatedAt ?? now);
       return TimeSpan.FromMinutes(GameSessionExpireMinutes) < sinceLastUpdate;
     }
-  }  
+  }
 
   public GameSession() { } // Never Called
 
   public GameSession(String sessionId, String? answer = null)
   {
     SessionId = sessionId;
-    CreatedAt = DateTimeOffset.UtcNow;
+    UpdatedAt = CreatedAt = DateTimeOffset.UtcNow;
     if (answer is null)
       SetNewRandomAnswer();
     else
@@ -84,8 +84,8 @@ public class GameSession
       if (PlayerDataDictionary[newPlayerName].ClientGuid == clientGuid)
       { // Restoring connection
         PlayerDataDictionary[newPlayerName].ConnectionId = connectionId;
-        UpdatedAt = DateTimeOffset.UtcNow;
         PlayerDataDictionary[newPlayerName].DisconnectedDateTime = null;
+        UpdatedAt = DateTimeOffset.UtcNow;
         return AddPlayerResult.ConnectionRestored;
       }
       else
@@ -123,6 +123,7 @@ public class GameSession
       return false;
     PlayerDataDictionary[playerName].ConnectionId = newConnectionId;
     PlayerDataDictionary[playerName].DisconnectedDateTime = null;
+    UpdatedAt = DateTimeOffset.UtcNow;
     return true;
   }
 
@@ -140,7 +141,7 @@ public class GameSession
 
   public void TreatAllPlayersAsDisconnected(out Boolean updated)
   { // This is useful when the server restarts and everyone needs to connect again
-    DateTimeOffset now = DateTimeOffset.UtcNow ; 
+    DateTimeOffset now = DateTimeOffset.UtcNow;
     DateTimeOffset oneMinuteFromNow = now + TimeSpan.FromSeconds(30); // Give extra time for people to reconnect
     updated = false;
     foreach (var pair in PlayerDataDictionary)
