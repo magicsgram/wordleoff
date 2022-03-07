@@ -168,8 +168,6 @@ public class WordleOffHub : Hub
       }
       catch (Exception) { break; }
     }
-
-    
   }
 
   public async Task ClientConnectAsSpectator(String sessionId)
@@ -206,6 +204,7 @@ public class WordleOffHub : Hub
         }
         await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
         connectionIdSessionIds.TryAdd(Context.ConnectionId, sessionId);
+        await SendFullGameStateAsync(gameSession);
         break;
       }
       catch (DbUpdateConcurrencyException)
