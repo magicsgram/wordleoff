@@ -110,6 +110,7 @@
   private System.Timers.Timer? copyUrlTimer;
   private System.Timers.Timer? invalidGuessTimer;
   private System.Timers.Timer? tableRerenderTimer;
+  private System.Timers.Timer? tableRerenderReenablerTimer;
   private DateTimeOffset utcNowFromServerAfterSessionFound = DateTimeOffset.UtcNow;
   private DateTimeOffset currentServerTimeEstimate = DateTimeOffset.UtcNow;
   private Stopwatch serverTimeStopWatch = new();
@@ -173,7 +174,9 @@
     if (highContrastModeChanged)
     {
       highContrastModeChanged = false;
+      PauseTableRerender();
       await jsRuntime.InvokeVoidAsync("reanimateAll");
+      StateHasChanged();
     }
   }
 
@@ -212,6 +215,7 @@
     UpdateGameStates();
     await HandleBrowserResize();
     await jsRuntime.InvokeVoidAsync("setFocusToElement", gameDiv);
+    PauseTableRerender();
   }
 
   public async Task HandleSessionFindResult(Boolean result, DateTimeOffset utcNow)
@@ -223,7 +227,7 @@
         utcNowFromServerAfterSessionFound = utcNow;
         serverTimeStopWatch.Reset();
         serverTimeStopWatch.Start();
-        tableRerenderTimer = new(1000);
+        tableRerenderTimer = new(250);
         tableRerenderTimer.AutoReset = true;
         tableRerenderTimer.Elapsed += async (sender, e) =>
         {
@@ -234,6 +238,10 @@
           });
         };
         tableRerenderTimer.Start();
+
+        tableRerenderReenablerTimer = new(1500);
+        tableRerenderReenablerTimer.AutoReset = false;
+        tableRerenderReenablerTimer.Elapsed += async (sender, e) => await Task.Run(() => tableRerenderTimer?.Start());
 
         sessionFound = true;
         if (spectatorMode)
@@ -319,7 +327,7 @@
 
   public void StartInvalidAnimationTimer()
   {
-    invalidGuessTimer = new(300);
+    invalidGuessTimer = new(100);
     invalidGuessTimer.AutoReset = false;
     invalidGuessTimer.Elapsed += async (sender, e) =>
     {
@@ -446,6 +454,15 @@
     StateHasChanged();
   }
 
+  public void TempPauseDisconnectedPlayerDisplay()
+  {
+    if (tableRerenderTimer is not null)
+    {
+
+      tableRerenderTimer.Stop();
+    }
+  }
+
   public async Task CopyUrlToClipboard()
   {
     await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", NavigationManager.ToAbsoluteUri($"game/{SessionId}"));
@@ -530,6 +547,12 @@
       godMode = true;
     else
       godMode = playerDataDictionary.ContainsKey(playerName) ? (alreadyGuessedCorrectly && behindOthers) || gameOver : false;
+  }
+
+  private void PauseTableRerender()
+  {
+    tableRerenderTimer?.Stop();
+    tableRerenderReenablerTimer?.Start();
   }
 
   private async Task NewGame()
@@ -622,7 +645,6 @@
                   String disconnectedPlayerMessage = "";
                   if (currentPlayerData.DisconnectedDateTime is not null)
                   {
-                    
                     TimeSpan disconnectedSince = (TimeSpan)(currentServerTimeEstimate - currentPlayerData.DisconnectedDateTime);
                     if (disconnectedSince > TimeSpan.FromSeconds(5)) // Don't show if disconnected for less than 5 seconds.
                     {
