@@ -9,13 +9,16 @@
     General Stats
   </div>
   <div>
-    Number of Sessions Alive: @gameSessions.Count
+    # of sessions alive: @gameSessions.Count
   </div>
   <div>
-    Number of Sessions w/ Players: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 0).Count())
+    # of sessions w/ players: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 0).Count())
   </div>
   <div>
-    Session w/ Largest # of Players: @(gameSessions.MaxBy(x => x.PlayerDataDictionary.Count)?.PlayerDataDictionary.Count ?? 0)
+    # of sessions w/ more than 1 player: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 1).Count())
+  </div>
+  <div>
+    Largest # of players in a session: @(gameSessions.MaxBy(x => x.PlayerDataDictionary.Count)?.PlayerDataDictionary.Count ?? 0)
   </div>
   <hr />
   @foreach (GameSession gameSession in gameSessions)
