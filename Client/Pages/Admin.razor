@@ -20,6 +20,9 @@
   <div>
     Largest # of players in a session: @(gameSessions.MaxBy(x => x.PlayerDataDictionary.Count)?.PlayerDataDictionary.Count ?? 0)
   </div>
+  <div>
+    Max Rounds: @(gameSessions.MaxBy(x => x.PastAnswers.Count)?.PastAnswers.Count ?? 0)
+  </div>
   <hr />
   @foreach (GameSession gameSession in gameSessions)
   {
@@ -72,7 +75,10 @@
 
   private void ServerAdminInfo(List<GameSession> newGameSessions)
   {
-    var sorted = newGameSessions.OrderBy(x => x.SessionId).OrderByDescending(x => x.PlayerDataDictionary.Count);
+    var sorted
+      = newGameSessions
+        .OrderByDescending(x => x.UpdatedAt)
+        .OrderByDescending(x => x.PlayerDataDictionary.Count);
     gameSessions = sorted.ToList();
     StateHasChanged();
   }

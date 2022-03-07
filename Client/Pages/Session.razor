@@ -552,6 +552,7 @@
   private void PauseTableRerender()
   {
     tableRerenderTimer?.Stop();
+    tableRerenderReenablerTimer?.Stop();
     tableRerenderReenablerTimer?.Start();
   }
 
