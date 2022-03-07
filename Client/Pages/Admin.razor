@@ -4,34 +4,49 @@
 @using WordleOff.Shared.Games
 @inject NavigationManager NavigationManager
 
-<table>
+<div class="scrollable">
+  <div>
+    General Stats
+  </div>
+  <div>
+    Number of Sessions Alive: @gameSessions.Count
+  </div>
+  <div>
+    Number of Sessions w/ Players: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 0).Count())
+  </div>
+  <div>
+    Session w/ Largest # of Players: @(gameSessions.MaxBy(x => x.PlayerDataDictionary.Count)?.PlayerDataDictionary.Count ?? 0)
+  </div>
+  <hr />
   @foreach (GameSession gameSession in gameSessions)
   {
-    <tr>
-      <td>
-        <div>
-          Session ID: @gameSession.SessionId;
-        </div>
-        <div>
-          Player Count: @gameSession.PlayerDataDictionary.Count
-        </div>
-        <div>
-          Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))</a>
-        </div>
-        <div>
-          Past Answers: @String.Join(" - ", gameSession.PastAnswers.ToArray())
-        </div>
-        <div>
-          Created: @gameSession.CreatedAt
-        </div>
-        <div>
-          Updated: @gameSession.UpdatedAt
-        </div>
-        <hr />
-      </td>
-    </tr>
+    <div>
+      <div>
+        Session ID: @gameSession.SessionId
+      </div>
+      <div>
+        Player Count: @gameSession.PlayerDataDictionary.Count
+      </div>
+      <div>
+        Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))</a>
+      </div>
+      <div>
+        Player Names: @String.Join(" - ", gameSession.PlayerDataDictionary.OrderBy(x => x.Value.Index).Select(x => $"{x.Key} ({x.Value.PlayData.Count})").ToArray())
+      </div>
+      <div>
+        Past Answers: @String.Join(" - ", gameSession.PastAnswers.ToArray())
+      </div>
+      <div>
+        Created: @gameSession.CreatedAt
+      </div>
+      <div>
+        Updated: @gameSession.UpdatedAt
+      </div>
+    </div>
+    <hr />
   }
-</table>
+</div>
+
 
 
 @code {

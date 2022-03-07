@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Concurrent;
+using System.Diagnostics;
+using System.Runtime;
 using WordleOff.Shared.Games;
 
 namespace WordleOff.Server.Hubs;
@@ -403,6 +405,8 @@ public class WordleOffHub : Hub
         }
       }
       await tempCtx.DisposeAsync();
+      GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+      GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
     });
   }
 
