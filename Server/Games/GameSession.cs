@@ -49,7 +49,7 @@ public class GameSession
   public GameSession(String sessionId, String? answer = null)
   {
     SessionId = sessionId;
-    CreatedAt = DateTimeOffset.UtcNow;
+    UpdatedAt = CreatedAt = DateTimeOffset.UtcNow;
     if (answer is null)
       SetNewRandomAnswer();
     else
@@ -85,8 +85,8 @@ public class GameSession
       if (PlayerDataDictionary[newPlayerName].ClientGuid == clientGuid)
       { // Restoring connection
         PlayerDataDictionary[newPlayerName].ConnectionId = connectionId;
-        UpdatedAt = DateTimeOffset.UtcNow;
         PlayerDataDictionary[newPlayerName].DisconnectedDateTime = null;
+        UpdatedAt = DateTimeOffset.UtcNow;
         return AddPlayerResult.ConnectionRestored;
       }
       else
@@ -124,6 +124,7 @@ public class GameSession
       return false;
     PlayerDataDictionary[playerName].ConnectionId = newConnectionId;
     PlayerDataDictionary[playerName].DisconnectedDateTime = null;
+    UpdatedAt = DateTimeOffset.UtcNow;
     return true;
   }
 
