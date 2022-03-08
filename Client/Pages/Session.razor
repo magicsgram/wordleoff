@@ -151,8 +151,6 @@
       await sessionStorage.SetItemAsStringAsync("wordleoff-clientGuid", clientGuid);
     }
 
-    await jsRuntime.InvokeVoidAsync("setTitle", "WORDLEOFF - Lobby");
-
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
       .Build();
@@ -203,7 +201,7 @@
     if (!sessionInitialized)
     {
       sessionInitialized = true;
-      await jsRuntime.InvokeVoidAsync("setTitle", "WORDLEOFF - Playing");
+      // Other session Initialization code goes here
     }
     await sessionStorage.SetItemAsStringAsync("wordleoff-sessionId-playerName", $"{SessionId}:{playerName}");
 
