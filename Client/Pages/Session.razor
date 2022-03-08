@@ -312,7 +312,7 @@
 
   private HashSet<String> DecompressFullWordsBytes(Byte[] compressedFullWordsBytes)
   {
-     MemoryStream input = new(compressedFullWordsBytes);
+    MemoryStream input = new(compressedFullWordsBytes);
     MemoryStream output = new();
     using (DeflateStream dstream = new DeflateStream(input, CompressionMode.Decompress))
     {
@@ -423,6 +423,8 @@
     Single newHeight = await jsRuntime.InvokeAsync<Single>("browserResize.getInnerHeight");
 
     Single allowedHeight = newHeight - (logoY + keyboardY); // WindowHeight - (Logo + Keyboard)
+    if (spectatorMode)
+      allowedHeight = newHeight - logoY - 80; // Spectator mode doesn't have a keyboard.
     if (allowedHeight < keyboardY)
       allowedHeight = keyboardY; // Minimum height
     Single allowedWidth = newWidth;
