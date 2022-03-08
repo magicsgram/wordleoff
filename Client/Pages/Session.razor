@@ -292,7 +292,6 @@
     if (await localStorage.ContainKeyAsync("wordleoff-fullWords-version")
         && await localStorage.ContainKeyAsync("wordleoff-fullWords-set"))
     {
-      Console.WriteLine("Trying to load local");
       try
       {
         Int32 localStorageFullWordsVersion = await localStorage.GetItemAsync<Int32>("wordleoff-fullWords-version");
@@ -306,7 +305,6 @@
       }
       catch { }
     }
-    Console.WriteLine("Request Full Words: " + requestFullWords);
 
     if (hubConnection is not null)
       await hubConnection.SendAsync("ClientConnectNew", SessionId, clientGuid, playerName, restore, requestFullWords);
