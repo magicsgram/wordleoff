@@ -20,7 +20,6 @@ public class WordsService
   }
   private static Byte[] compressedFullWordsBytes = new Byte[0];
   
-
   public static String NextRandomAnswer()
   {
     if (!initialized)
@@ -41,7 +40,7 @@ public class WordsService
       String word = fullWordsStreamReader.ReadLine() ?? throw new Exception("Words not found");
       word = word.ToLower().Trim();
       if (word.Length > 0)
-          fullWordsTempList.Add(word);          
+          fullWordsTempList.Add(word);
     }
     fullWordsStreamReader.Close();
     

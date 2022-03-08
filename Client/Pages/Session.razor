@@ -7,6 +7,7 @@
 @using WordleOff.Shared.Games
 @inject NavigationManager NavigationManager
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
 @inject IJSRuntime jsRuntime
 @implements IAsyncDisposable
 
@@ -144,7 +145,7 @@
     await jsRuntime.InvokeVoidAsync("browserResize.registerResizeCallback");
 
     if (await sessionStorage.ContainKeyAsync("wordleoff-clientGuid"))
-      clientGuid = await sessionStorage.GetItemAsync<String>("wordleoff-clientGuid");
+      clientGuid = await sessionStorage.GetItemAsStringAsync("wordleoff-clientGuid");
     else
     {
       clientGuid = Guid.NewGuid().ToString();
@@ -156,11 +157,16 @@
       .Build();
     hubConnection.Closed += async (e) => await OnClosed(e);
 
-    hubConnection.On<Byte[]>("ServerFullWordsCompressed", async (compressedFullWordsBytes) => await StoreFullWords(compressedFullWordsBytes));
-    hubConnection.On<Dictionary<String, PlayerData>>("ServerPlayerData", async (newPlayerDataDictionary) => await UpdatePlayerData(newPlayerDataDictionary));
-    hubConnection.On<String>("ServerCurrentAnswer", (correctAnswer) => UpdateCurrentAnswer(correctAnswer));
-    hubConnection.On<ServerJoinError>("ServerJoinError", (error) => DisplayJoinErrorMessage(error));
-    hubConnection.On<Boolean, DateTimeOffset>("ServerSessionFindResult", (result, utcNow) => HandleSessionFindResult(result, utcNow));
+    hubConnection.On<Byte[]>("ServerFullWordsCompressed", async (compressedFullWordsBytes)
+      => await StoreFullWords(compressedFullWordsBytes));
+    hubConnection.On<Dictionary<String, PlayerData>>("ServerPlayerData", async (newPlayerDataDictionary)
+      => await UpdatePlayerData(newPlayerDataDictionary));
+    hubConnection.On<String>("ServerCurrentAnswer", (correctAnswer)
+      => UpdateCurrentAnswer(correctAnswer));
+    hubConnection.On<ServerJoinError>("ServerJoinError", (error)
+      => DisplayJoinErrorMessage(error));
+    hubConnection.On<Boolean, DateTimeOffset>("ServerSessionFindResult", (result, utcNow)
+      => HandleSessionFindResult(result, utcNow));
 
     await hubConnection.StartAsync();
 
@@ -182,18 +188,9 @@
 
   public async Task StoreFullWords(Byte[] compressedFullWordsBytes)
   {
-    await Task.Run(() =>
-    {
-      MemoryStream input = new(compressedFullWordsBytes);
-      MemoryStream output = new();
-      using (DeflateStream dstream = new DeflateStream(input, CompressionMode.Decompress))
-      {
-        dstream.CopyTo(output);
-      }
-      Byte[] decompressedBytes = output.ToArray();
-      String fullWordsString = UTF8Encoding.UTF8.GetString(decompressedBytes);
-      fullWords = fullWordsString.Split("\n").ToHashSet();
-    });
+    fullWords = DecompressFullWordsBytes(compressedFullWordsBytes);
+    await localStorage.SetItemAsync<Int32>("wordleoff-fullWords-version", CommonValues.FullWordsVersion);
+    await localStorage.SetItemAsync<HashSet<String>>("wordleoff-fullWords-set", fullWords);
   }
 
   public async Task UpdatePlayerData(Dictionary<String, PlayerData> newPlayerDataDictionary)
@@ -291,8 +288,41 @@
       return;
     }
 
+    Boolean requestFullWords = true;
+    if (await localStorage.ContainKeyAsync("wordleoff-fullWords-version")
+        && await localStorage.ContainKeyAsync("wordleoff-fullWords-set"))
+    {
+      Console.WriteLine("Trying to load local");
+      try
+      {
+        Int32 localStorageFullWordsVersion = await localStorage.GetItemAsync<Int32>("wordleoff-fullWords-version");
+        HashSet<String> localStorageFullWordsSet = await localStorage.GetItemAsync<HashSet<String>>("wordleoff-fullWords-set");
+        if (localStorageFullWordsVersion == CommonValues.FullWordsVersion
+            && localStorageFullWordsSet.Count > 10000)
+        {
+          requestFullWords = false;
+          fullWords = localStorageFullWordsSet;
+        }
+      }
+      catch { }
+    }
+    Console.WriteLine("Request Full Words: " + requestFullWords);
+
     if (hubConnection is not null)
-      await hubConnection.SendAsync("ClientConnectNew", SessionId, clientGuid, playerName, restore, true);
+      await hubConnection.SendAsync("ClientConnectNew", SessionId, clientGuid, playerName, restore, requestFullWords);
+  }
+
+  private HashSet<String> DecompressFullWordsBytes(Byte[] compressedFullWordsBytes)
+  {
+     MemoryStream input = new(compressedFullWordsBytes);
+    MemoryStream output = new();
+    using (DeflateStream dstream = new DeflateStream(input, CompressionMode.Decompress))
+    {
+      dstream.CopyTo(output);
+    }
+    Byte[] decompressedBytes = output.ToArray();
+    String fullWordsString = UTF8Encoding.UTF8.GetString(decompressedBytes);
+    return fullWordsString.Split("\n").ToHashSet();
   }
 
   public async Task SubmitGuess()
