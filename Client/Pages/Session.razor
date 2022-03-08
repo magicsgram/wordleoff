@@ -572,6 +572,7 @@
   {
     if (hubConnection is not null)
     {
+      await Task.Run(() => Thread.Sleep(2000));
       await hubConnection.StartAsync();
       await Reconnect();
     }
