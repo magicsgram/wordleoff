@@ -556,11 +556,13 @@
                 || x.PlayData.Count >= myGuessCount;
       });
       guessLimitReached = playerDataDictionary[playerName].PlayData.Count == 6;
-
+    }
+    if (correctAnswer is not null)
+    {
       maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
       allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessedCorrectly(correctAnswer));
       gameOver = playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessedCorrectly(correctAnswer));
-    }    
+    }
 
     if (!behindOthers && keyExist)
       holdMessage = "Wait until all players catch up";
@@ -738,7 +740,7 @@
                                   else
                                   {
                                     classesString = "guess-tile guess-guessing";
-                                    displayedLetter = '?';
+                                    displayedLetter = godMode ? currentGuess[y] : '?';
                                   }
                                 }
                                 else // Regular guess row
