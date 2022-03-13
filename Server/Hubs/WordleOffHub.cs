@@ -26,22 +26,23 @@ public class WordleOffHub : Hub
   {
     if (!initialized)
     {
-      removeDisconnectedPlayersTimer = new(5000);
-      removeDisconnectedPlayersTimer.Elapsed += RemoveDisconnectedPlayers;
-      removeDisconnectedPlayersTimer.AutoReset = true;
-      removeDisconnectedPlayersTimer.Enabled = true;
-      removeDisconnectedPlayersTimer.Start();
-
-      removeExpiredSessionsTimer = new(60000);
-      removeExpiredSessionsTimer.Elapsed += RemoveExpiredSessions;
-      removeExpiredSessionsTimer.AutoReset = true;
-      removeExpiredSessionsTimer.Enabled = true;
-      removeExpiredSessionsTimer.Start();
-
-      // // For Test Only
-      // CreateNewSession();
       initialized = true;
     }
+  }
+
+  public static void StaticInitialize()
+  { // Do these before ever creating WordleOffHub. (to prevent race conditions)
+    removeDisconnectedPlayersTimer = new(5000);
+    removeDisconnectedPlayersTimer.Elapsed += RemoveDisconnectedPlayers;
+    removeDisconnectedPlayersTimer.AutoReset = true;
+    removeDisconnectedPlayersTimer.Enabled = true;
+    removeDisconnectedPlayersTimer.Start();
+
+    removeExpiredSessionsTimer = new(60000);
+    removeExpiredSessionsTimer.Elapsed += RemoveExpiredSessions;
+    removeExpiredSessionsTimer.AutoReset = true;
+    removeExpiredSessionsTimer.Enabled = true;
+    removeExpiredSessionsTimer.Start();
   }
 
   protected override void Dispose(Boolean disposing)
@@ -269,10 +270,25 @@ public class WordleOffHub : Hub
 
   public async Task SendFullGameStateAsync(GameSession gameSession, Boolean sendToWholeGroup = true)
   {
+    Dictionary<String, PlayerData> strippedDictionary = new();
+    foreach (var pair in gameSession.PlayerDataDictionary)
+    {
+      PlayerData playerData = pair.Value;
+      PlayerData newPlayerData = new()
+      {
+        Index = playerData.Index,
+        ConnectionId = "",
+        ClientGuid = "",
+        DisconnectedDateTime = playerData.DisconnectedDateTime,
+        PlayData = playerData.PlayData
+      };
+      strippedDictionary.Add(pair.Key, newPlayerData);
+    }
+
     if (sendToWholeGroup)
-      await Clients.Group(gameSession.SessionId).SendAsync("ServerPlayerData", gameSession.PlayerDataDictionary);
+      await Clients.Group(gameSession.SessionId).SendAsync("ServerPlayerData", strippedDictionary);
     else
-      await Clients.Caller.SendAsync("ServerPlayerData", gameSession.PlayerDataDictionary);
+      await Clients.Caller.SendAsync("ServerPlayerData", strippedDictionary);
   }
 
   public async Task SendJoinErrorAsync(ServerJoinError error) => await Clients.Caller.SendAsync("ServerJoinError", error);

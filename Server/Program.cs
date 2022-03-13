@@ -58,6 +58,9 @@ app.MapControllers();
 app.MapHub<WordleOffHub>("/WordleOffHub");
 app.MapFallbackToFile("index.html");
 
+// Do some initializations
+WordleOffHub.StaticInitialize();
+
 WordleOffContext dbCtx = new();
 dbCtx.Database.Migrate();
 dbCtx.SaveChanges();
@@ -81,5 +84,6 @@ try
 }
 catch { }
 
+// Run
 app.Run();
 #endregion
