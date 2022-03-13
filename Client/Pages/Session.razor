@@ -169,7 +169,6 @@
       => HandleSessionFindResult(result, utcNow));
 
     await hubConnection.StartAsync();
-
     await hubConnection.InvokeAsync("ClientSearchSession", SessionId);
   }
 
@@ -222,14 +221,15 @@
         utcNowFromServerAfterSessionFound = utcNow;
         serverTimeStopWatch.Reset();
         serverTimeStopWatch.Start();
-        tableRerenderTimer = new(250);
+        tableRerenderTimer = new(500);
         tableRerenderTimer.AutoReset = true;
         tableRerenderTimer.Elapsed += async (sender, e) =>
         {
           await Task.Run(() =>
           {
             currentServerTimeEstimate = utcNowFromServerAfterSessionFound + serverTimeStopWatch.Elapsed;
-            StateHasChanged();
+            if (playerDataDictionary is not null && playerDataDictionary.Any(x => x.Value.DisconnectedDateTime is not null))
+              StateHasChanged();
           });
         };
         tableRerenderTimer.Start();
@@ -237,6 +237,28 @@
         tableRerenderReenablerTimer = new(1500);
         tableRerenderReenablerTimer.AutoReset = false;
         tableRerenderReenablerTimer.Elapsed += async (sender, e) => await Task.Run(() => tableRerenderTimer?.Start());
+
+        copyUrlTimer = new(5000);
+        copyUrlTimer.AutoReset = false;
+        copyUrlTimer.Elapsed += async (sender, e) =>
+        {
+          await Task.Run(() =>
+          {
+            copyIdMessage = "";
+            StateHasChanged();
+          });
+        };
+
+        invalidGuessTimer = new(400);
+        invalidGuessTimer.AutoReset = false;
+        invalidGuessTimer.Elapsed += async (sender, e) =>
+        {
+          await Task.Run(() =>
+          {
+            invalidGuessTriggerAnimation = false;
+            StateHasChanged();
+          });
+        };
 
         sessionFound = true;
         if (spectatorMode)
@@ -337,6 +359,7 @@
       else if (!fullWords.Contains(guess.ToLower()))
       {
         submitError = "Not a word!";
+        PauseTableRerender();
         invalidGuessTriggerAnimation = true;
         StartInvalidAnimationTimer();
         return;
@@ -353,17 +376,8 @@
 
   public void StartInvalidAnimationTimer()
   {
-    invalidGuessTimer = new(100);
-    invalidGuessTimer.AutoReset = false;
-    invalidGuessTimer.Elapsed += async (sender, e) =>
-    {
-      await Task.Run(() =>
-      {
-        invalidGuessTriggerAnimation = false;
-        StateHasChanged();
-      });
-    };
-    invalidGuessTimer.Start();
+    invalidGuessTimer?.Stop();
+    invalidGuessTimer?.Start();
   }
 
   public async Task Reconnect()
@@ -482,30 +496,14 @@
     StateHasChanged();
   }
 
-  public void TempPauseDisconnectedPlayerDisplay()
-  {
-    if (tableRerenderTimer is not null)
-    {
-
-      tableRerenderTimer.Stop();
-    }
-  }
+  public void TempPauseDisconnectedPlayerDisplay() => tableRerenderTimer?.Stop();
 
   public async Task CopyUrlToClipboard()
   {
     await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", NavigationManager.ToAbsoluteUri($"game/{SessionId}"));
     copyIdMessage = " (Copied!!!)";
-    copyUrlTimer = new(5000);
-    copyUrlTimer.AutoReset = false;
-    copyUrlTimer.Elapsed += async (sender, e) =>
-    {
-      await Task.Run(() =>
-      {
-        copyIdMessage = "";
-        StateHasChanged();
-      });
-    };
-    copyUrlTimer.Start();
+    copyUrlTimer?.Stop();
+    copyUrlTimer?.Start();
   }
 
   public async Task NavigateToDictionaryDotCom()

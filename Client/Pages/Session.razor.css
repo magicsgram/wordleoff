@@ -175,13 +175,13 @@ table {
 
 @keyframes guess-invalid-frames {
   25% {
-    transform: scale(0.90);
+    transform: scale(0.85);
   }
   50% {
     transform: scale(1.0);
   }
   75% {
-    transform: scale(0.90);
+    transform: scale(0.85);
   }
   100% {
     transform: scale(1.0);
