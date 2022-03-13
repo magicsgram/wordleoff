@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using System.Diagnostics
 @using WordleOff.Shared.Games
+@using System.Security.Cryptography;
 @inject NavigationManager NavigationManager
 @inject Blazored.SessionStorage.ISessionStorageService sessionStorage
 @inject Blazored.LocalStorage.ILocalStorageService localStorage
@@ -188,8 +189,10 @@
   public async Task StoreFullWords(Byte[] compressedFullWordsBytes)
   {
     fullWords = DecompressFullWordsBytes(compressedFullWordsBytes);
+
+    String base64String = Convert.ToBase64String(compressedFullWordsBytes);
     await localStorage.SetItemAsync<Int32>("wordleoff-fullWords-version", CommonValues.FullWordsVersion);
-    await localStorage.SetItemAsync<HashSet<String>>("wordleoff-fullWords-set", fullWords);
+    await localStorage.SetItemAsync<String>("wordleoff-fullWords-set", base64String);
   }
 
   public async Task UpdatePlayerData(Dictionary<String, PlayerData> newPlayerDataDictionary)
@@ -317,12 +320,13 @@
       try
       {
         Int32 localStorageFullWordsVersion = await localStorage.GetItemAsync<Int32>("wordleoff-fullWords-version");
-        HashSet<String> localStorageFullWordsSet = await localStorage.GetItemAsync<HashSet<String>>("wordleoff-fullWords-set");
-        if (localStorageFullWordsVersion == CommonValues.FullWordsVersion
-            && localStorageFullWordsSet.Count > 10000)
+        String localStorageFullWordsSetBase64 = await localStorage.GetItemAsync<String>("wordleoff-fullWords-set");
+        if (localStorageFullWordsVersion == CommonValues.FullWordsVersion)
         {
           requestFullWords = false;
-          fullWords = localStorageFullWordsSet;
+          Byte[] compressedByteArray = Convert.FromBase64String(localStorageFullWordsSetBase64);
+          HashSet<String> decompressed = DecompressFullWordsBytes(compressedByteArray);
+          fullWords = decompressed;
         }
       }
       catch { }
