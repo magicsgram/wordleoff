@@ -23,7 +23,7 @@ public class GameSession
 {
   private const Int32 MaxPlayers = 16;
   private const Int32 GameSessionExpireMinutes = 120;
-  private const Int32 PastAnswersMaxSize = 100;
+  private const Int32 PastAnswersMaxSize = 500;
 
   [Key]
   public String SessionId { get; set; } = "";
