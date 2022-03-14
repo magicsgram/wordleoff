@@ -399,7 +399,14 @@
       await hubConnection.SendAsync("ClientReconnect", SessionId, playerName, spectatorMode);
   }
 
-  public void UpdateCurrentAnswer(String newCorrectAnswer) => correctAnswer = newCorrectAnswer;
+  public void UpdateCurrentAnswer(String newCorrectAnswer)
+  {
+    if (newCorrectAnswer.Length > 5)
+      correctAnswer = EncryptDecrypt.XorDecrypt(newCorrectAnswer);
+    else
+      correctAnswer = newCorrectAnswer;
+  }
+  
 
   public void UpdateCurrentAnswer2(String newCorrectAnswer) => correctAnswer = EncryptDecrypt.XorDecrypt(newCorrectAnswer);
 
