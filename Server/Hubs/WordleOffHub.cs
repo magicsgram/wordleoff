@@ -397,7 +397,7 @@ public class WordleOffHub : Hub
       await tempCtx.DisposeAsync();
     });
   }
-
+ 
   public static void RemoveExpiredSessions(Object? sender, System.Timers.ElapsedEventArgs e)
   {
     Task.Run(async () =>
@@ -433,6 +433,7 @@ public class WordleOffHub : Hub
 
   public async override Task OnDisconnectedAsync(Exception? exception)
   {
+    await base.OnDisconnectedAsync(exception);
     connectionIdSessionIds.Remove(Context.ConnectionId, out String? sessionId);
     if (sessionId is not null)
     {
