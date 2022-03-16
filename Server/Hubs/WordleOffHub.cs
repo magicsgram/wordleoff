@@ -32,17 +32,23 @@ public class WordleOffHub : Hub
 
   public static void StaticInitialize()
   { // Do these before ever creating WordleOffHub. (to prevent race conditions)
-    removeDisconnectedPlayersTimer = new(5000);
-    removeDisconnectedPlayersTimer.Elapsed += RemoveDisconnectedPlayers;
-    removeDisconnectedPlayersTimer.AutoReset = true;
-    removeDisconnectedPlayersTimer.Enabled = true;
-    removeDisconnectedPlayersTimer.Start();
+    if (removeDisconnectedPlayersTimer is null)
+    {
+      removeDisconnectedPlayersTimer = new(5000);
+      removeDisconnectedPlayersTimer.Elapsed += RemoveDisconnectedPlayers;
+      removeDisconnectedPlayersTimer.AutoReset = true;
+      removeDisconnectedPlayersTimer.Enabled = true;
+      removeDisconnectedPlayersTimer.Start();
+    }
 
-    removeExpiredSessionsTimer = new(60000);
-    removeExpiredSessionsTimer.Elapsed += RemoveExpiredSessions;
-    removeExpiredSessionsTimer.AutoReset = true;
-    removeExpiredSessionsTimer.Enabled = true;
-    removeExpiredSessionsTimer.Start();
+    if (removeExpiredSessionsTimer is null)
+    {
+      removeExpiredSessionsTimer = new(60000);
+      removeExpiredSessionsTimer.Elapsed += RemoveExpiredSessions;
+      removeExpiredSessionsTimer.AutoReset = true;
+      removeExpiredSessionsTimer.Enabled = true;
+      removeExpiredSessionsTimer.Start();
+    }
   }
 
   protected override void Dispose(Boolean disposing)
