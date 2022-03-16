@@ -3,6 +3,7 @@
 @using Microsoft.AspNetCore.WebUtilities
 @using WordleOff.Shared.Games
 @inject NavigationManager NavigationManager
+@inject IJSRuntime jsRuntime
 
 <div class="scrollable">
   <div>
@@ -49,13 +50,16 @@
         Past answers: @String.Join(" - ", gameSession.PastAnswers.ToArray())
       </div>
       <div>
-        Created: @gameSession.CreatedAt
+        Created: @(GetBrowserLocalTime(gameSession.CreatedAt!.Value))
       </div>
       <div>
-        Updated: @gameSession.UpdatedAt
+        Updated: @(GetBrowserLocalTime(gameSession.UpdatedAt!.Value))
       </div>
       <div>
-        Session lasted for: @(gameSession.UpdatedAt - gameSession.CreatedAt);
+        Session lasted for: @(gameSession.UpdatedAt - gameSession.CreatedAt)
+      </div>
+      <div>
+        Last updated: @(DateTimeOffset.UtcNow - gameSession.UpdatedAt) ago
       </div>
     </div>
     <hr />
@@ -68,9 +72,13 @@
   private List<GameSession> gameSessions = new();
 
   private HubConnection? hubConnection;
+  private TimeSpan offset = TimeSpan.Zero;
 
   protected override async Task OnInitializedAsync()
   {
+    Int32 offsetMinutes = await jsRuntime.InvokeAsync<Int32>("eval", "-new Date().getTimezoneOffset()");
+    offset = TimeSpan.FromMinutes(offsetMinutes);
+
     hubConnection = new HubConnectionBuilder()
      .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
      .Build();
@@ -91,4 +99,7 @@
     gameSessions = sorted.ToList();
     StateHasChanged();
   }
+
+  // Blazor wasm is not aware of local time. Use javascript to correct this
+  private DateTimeOffset GetBrowserLocalTime(DateTimeOffset dateTimeOffset) => new(dateTimeOffset.DateTime + offset, offset);
 }

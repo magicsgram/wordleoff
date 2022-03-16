@@ -606,11 +606,15 @@
   {
     if (hubConnection is not null)
     {
-      while (hubConnection.State != HubConnectionState.Connected)
+      Int32 tryCount = 0;
+      while (hubConnection.State != HubConnectionState.Connected && tryCount < 5)
       {
+        ++tryCount;
         await Task.Run(() => Thread.Sleep(2000));
         await hubConnection.StartAsync();
       }
+      if (tryCount == 3)
+        throw new Exception("Reconnect"); // Show error message so that people can reconnect manually
       await ReconnectPlayerToSessionAsync();
     }
   }
