@@ -247,6 +247,33 @@ public class WordleOffHub : Hub
     }
   }
 
+  public async Task ClientSubmitGuess2(String sessionId, String playerName, String guess)
+  {
+    Int32 tryCount = 0;
+    while (tryCount < DbRetryCount)
+    {
+      try
+      {
+        GameSession? gameSession = GetGameSession(sessionId);
+        if (gameSession is not null)
+        {
+          if (gameSession.EnterGuess(playerName, guess) == EnterWordResult.Success)
+          {
+            await SaveGameSessionToDbAsync(gameSession);
+            await SendFullGameStateAsync(gameSession);
+          }
+        }
+        break;
+      }
+      catch (DbUpdateConcurrencyException)
+      {
+        SleepRandomForDbRetry();
+        ++tryCount;
+      }
+      catch (Exception) { break; }
+    }
+  }
+
   public async Task ClientAdminInfo(String adminKey)
   {
     if (adminKey == Environment.GetEnvironmentVariable("ADMIN_KEY"))
@@ -264,17 +291,32 @@ public class WordleOffHub : Hub
   {
     String encrypted = EncryptDecrypt.XorEncrypt(gameSession.CurrentAnswer);
     if (sendToWholeGroup)
-      await Clients.Group(gameSession.SessionId).SendAsync("ServerCurrentAnswer", encrypted);
+      await Clients.Group(gameSession.SessionId).SendAsync("ServerCurrentAnswer2", encrypted);
     else
-      await Clients.Caller.SendAsync("ServerCurrentAnswer", encrypted);
+      await Clients.Caller.SendAsync("ServerCurrentAnswer2", encrypted);
   }
 
   public async Task SendFullGameStateAsync(GameSession gameSession, Boolean sendToWholeGroup = true)
   {
+    Dictionary<String, PlayerData> strippedDictionary = new();
+    foreach (var pair in gameSession.PlayerDataDictionary)
+    {
+      PlayerData playerData = pair.Value;
+      PlayerData newPlayerData = new()
+      {
+        Index = playerData.Index,
+        ConnectionId = "",
+        ClientGuid = "",
+        DisconnectedDateTime = playerData.DisconnectedDateTime,
+        PlayData = playerData.PlayData
+      };
+      strippedDictionary.Add(pair.Key, newPlayerData);
+    }
+
     if (sendToWholeGroup)
-      await Clients.Group(gameSession.SessionId).SendAsync("ServerPlayerData", gameSession.PlayerDataDictionary);
+      await Clients.Group(gameSession.SessionId).SendAsync("ServerPlayerData", strippedDictionary);
     else
-      await Clients.Caller.SendAsync("ServerPlayerData", gameSession.PlayerDataDictionary);
+      await Clients.Caller.SendAsync("ServerPlayerData", strippedDictionary);
   }
 
   public async Task SendJoinErrorAsync(ServerJoinError error) => await Clients.Caller.SendAsync("ServerJoinError", error);

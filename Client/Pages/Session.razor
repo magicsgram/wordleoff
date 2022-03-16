@@ -164,6 +164,8 @@
       => await UpdatePlayerData(newPlayerDataDictionary));
     hubConnection.On<String>("ServerCurrentAnswer", (correctAnswer)
       => UpdateCurrentAnswer(correctAnswer));
+    hubConnection.On<String>("ServerCurrentAnswer2", (correctAnswer)
+      => UpdateCurrentAnswer2(correctAnswer));
     hubConnection.On<ServerJoinError>("ServerJoinError", (error)
       => DisplayJoinErrorMessage(error));
     hubConnection.On<Boolean, DateTimeOffset>("ServerSessionFindResult", (result, utcNow)
@@ -377,7 +379,7 @@
       }
       if (canSubmitNewGuess)
       {
-        await hubConnection.SendAsync("ClientSubmitGuess", playerName, EncryptDecrypt.XorEncrypt(guess.ToLower()));
+        await hubConnection.SendAsync("ClientSubmitGuess2", sessionId, playerName, EncryptDecrypt.XorEncrypt(guess.ToLower()));
         guessTempForRender = guess;
         guess = "";
       }
@@ -404,6 +406,9 @@
     else
       correctAnswer = newCorrectAnswer;
   }
+  
+
+  public void UpdateCurrentAnswer2(String newCorrectAnswer) => correctAnswer = EncryptDecrypt.XorDecrypt(newCorrectAnswer);
 
   #endregion
 
