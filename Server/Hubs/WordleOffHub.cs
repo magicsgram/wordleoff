@@ -291,9 +291,9 @@ public class WordleOffHub : Hub
   {
     String encrypted = EncryptDecrypt.XorEncrypt(gameSession.CurrentAnswer);
     if (sendToWholeGroup)
-      await Clients.Group(gameSession.SessionId).SendAsync("ServerCurrentAnswer2", encrypted);
+      await Clients.Group(gameSession.SessionId).SendAsync("ServerCurrentAnswer", encrypted);
     else
-      await Clients.Caller.SendAsync("ServerCurrentAnswer2", encrypted);
+      await Clients.Caller.SendAsync("ServerCurrentAnswer", encrypted);
   }
 
   public async Task SendFullGameStateAsync(GameSession gameSession, Boolean sendToWholeGroup = true)
