@@ -9,7 +9,7 @@
     window.addEventListener("resize", browserResize.resized);
   },
   resized: function () {
-    DotNet.invokeMethodAsync("WordleOff.Client", "OnBrowserResize").then(data => data);
+    DotNet.invokeMethodAsync("WordleOff.Client", "OnBrowserResizeAsync").then(data => data);
   }
 };
 
