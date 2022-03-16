@@ -373,7 +373,7 @@
       }
       if (canSubmitNewGuess)
       {
-        await hubConnection.SendAsync("ClientSubmitGuess2", SessionId, playerName, EncryptDecrypt.XorEncrypt(guess.ToLower()));
+        await hubConnection.SendAsync("ClientSubmitGuess", SessionId, playerName, EncryptDecrypt.XorEncrypt(guess.ToLower()));
         guessTempForRender = guess;
         guess = "";
       }

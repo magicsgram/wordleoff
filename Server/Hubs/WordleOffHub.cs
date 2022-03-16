@@ -223,14 +223,11 @@ public class WordleOffHub : Hub
     }
   }
 
-  public async Task ClientSubmitGuess(String playerName, String guess)
+  public async Task ClientSubmitGuess(String sessionId, String playerName, String guess)
   {
-    if (!connectionIdSessionIds.ContainsKey(Context.ConnectionId))
-      return;
     Int32 tryCount = 0;
     while (tryCount < DbRetryCount)
     {
-      String sessionId = connectionIdSessionIds[Context.ConnectionId];
       try
       {
         GameSession? gameSession = GetGameSession(sessionId);
@@ -253,32 +250,7 @@ public class WordleOffHub : Hub
     }
   }
 
-  public async Task ClientSubmitGuess2(String sessionId, String playerName, String guess)
-  {
-    Int32 tryCount = 0;
-    while (tryCount < DbRetryCount)
-    {
-      try
-      {
-        GameSession? gameSession = GetGameSession(sessionId);
-        if (gameSession is not null)
-        {
-          if (gameSession.EnterGuess(playerName, guess) == EnterWordResult.Success)
-          {
-            await SaveGameSessionToDbAsync(gameSession);
-            await SendFullGameStateAsync(gameSession);
-          }
-        }
-        break;
-      }
-      catch (DbUpdateConcurrencyException)
-      {
-        SleepRandomForDbRetry();
-        ++tryCount;
-      }
-      catch (Exception) { break; }
-    }
-  }
+  public async Task ClientSubmitGuess2(String sessionId, String playerName, String guess) => await ClientSubmitGuess(sessionId, playerName, guess);
 
   public async Task ClientAdminInfo(String adminKey)
   {
