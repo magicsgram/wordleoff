@@ -34,11 +34,14 @@
       <input class="div-margin-1 input-box" style="width: 150px;" placeholder="Your name..." @bind="playerName" disabled="@(!IsConnected || IsGameInProgress)" maxlength="16" />
       <button class="div-margin-1 button" @onclick="JoinSessionAsync" disabled="@(!IsConnected || IsGameInProgress)">Join</button>
     </div>
-  </div>
-  <hr />
-  <div>
-    Go to <span class="wordleoff-dot-com" @onclick="NavigateToNewGameScreen">@(NavigationManager.BaseUri)</span>
-    <br />to start/join a new session
+    <div>
+      @joinErrorMessage
+    </div>
+    <hr />
+    <div>
+      Go to <span class="wordleoff-dot-com" @onclick="NavigateToNewGameScreen">@(NavigationManager.BaseUri)</span>
+      <br />to start/join a new session
+    </div>
   </div>
 </div>
 <div class="screen">
