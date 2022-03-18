@@ -58,7 +58,7 @@ public class WordleOffHub : Hub
 
   #region Received from Client
 
-  public async Task ClientCreateNewSession(String clientGuid)
+  public async Task ClientCreateNewSession2()
   {
     await DBOpsAsync(async () =>
     {
@@ -68,6 +68,8 @@ public class WordleOffHub : Hub
       await Clients.Caller.SendAsync("NewSessionCreated", newGameSession.SessionId);
     });
   }
+
+  public async Task ClientCreateNewSession(String clientGuid) => await ClientCreateNewSession2(); // Deprecated
 
   public async Task ClientResetCurrentSession(String sessionId)
   {
@@ -261,7 +263,7 @@ public class WordleOffHub : Hub
     String newSessionId;
     for (; ; )
     {
-      List<String> segments = new();
+      List<String> segments = new(16);
       for (Int32 i = 0; i < 3; ++i)
       {
         // Three digit numbers w/ the same number in each digit are considered
