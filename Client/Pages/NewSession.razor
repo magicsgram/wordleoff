@@ -98,7 +98,7 @@
   private async Task CreateNewGame()
   {
     if (hubConnection is not null)
-      await hubConnection.SendAsync("ClientCreateNewSession");
+      await hubConnection.SendAsync("ClientCreateNewSession2");
   }
 
   private void JoinSession()
