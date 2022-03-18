@@ -14,8 +14,7 @@ public class WordleOffHub : Hub
   private static Boolean initialized = false;
   private static readonly Random random = new();
 
-  private static readonly ConcurrentDictionary<String, String> connectionIdSessionIds = new();
-  private WordleOffContext dbCtx = new WordleOffContext();
+  private WordleOffContext dbCtx = new();
 
   private static IHubCallerClients? latestClients;
 
@@ -34,7 +33,7 @@ public class WordleOffHub : Hub
   { // Do these before ever creating WordleOffHub. (to prevent race conditions)
     if (removeDisconnectedPlayersTimer is null)
     {
-      removeDisconnectedPlayersTimer = new(5000);
+      removeDisconnectedPlayersTimer = new(5000); // Every 5 seconds
       removeDisconnectedPlayersTimer.Elapsed += RemoveDisconnectedPlayers;
       removeDisconnectedPlayersTimer.AutoReset = true;
       removeDisconnectedPlayersTimer.Enabled = true;
@@ -43,7 +42,7 @@ public class WordleOffHub : Hub
 
     if (removeExpiredSessionsTimer is null)
     {
-      removeExpiredSessionsTimer = new(60000);
+      removeExpiredSessionsTimer = new(300000); // Every 5 minutes
       removeExpiredSessionsTimer.Elapsed += RemoveExpiredSessions;
       removeExpiredSessionsTimer.AutoReset = true;
       removeExpiredSessionsTimer.Enabled = true;
@@ -61,16 +60,8 @@ public class WordleOffHub : Hub
 
   public async Task ClientCreateNewSession(String clientGuid)
   {
-    connectionIdSessionIds.Remove(Context.ConnectionId, out String? sessionId);
-
-    await DBOps(async () =>
+    await DBOpsAsync(async () =>
     {
-      if (sessionId is not null)
-      {
-        GameSession? gameSession = GetGameSession(sessionId);
-        if (gameSession is not null)
-          gameSession.DisconnectPlayer(clientGuid);
-      }
       GameSession newGameSession = CreateNewSession();
       await dbCtx.GameSessions.AddAsync(newGameSession);
       await SaveGameSessionToDbAsync();
@@ -80,7 +71,7 @@ public class WordleOffHub : Hub
 
   public async Task ClientResetCurrentSession(String sessionId)
   {
-    await DBOps(async () =>
+    await DBOpsAsync(async () =>
     {
       GameSession? gameSession = GetGameSession(sessionId);
       if (gameSession is null)
@@ -102,7 +93,22 @@ public class WordleOffHub : Hub
 
   public async Task ClientConnectNew(String sessionId, String clientGuid, String newPlayerName, Boolean restore, Boolean requestFullWords)
   {
-    await DBOps(async () =>
+    String? oldSessionId = await GetSessionIdFromConnectionId(Context.ConnectionId);
+    if (oldSessionId is not null && oldSessionId != sessionId)
+    {
+      await RemoveConnectionIdToSessionId(Context.ConnectionId);
+      await DBOpsAsync(async () =>
+      {
+        GameSession? oldGameSession = GetGameSession(oldSessionId);
+        if (oldGameSession is not null)
+        {
+          oldGameSession.DisconnectPlayer(Context.ConnectionId);
+          await SaveGameSessionToDbAsync(oldGameSession);
+        }
+      });
+    }
+ 
+    await DBOpsAsync(async () =>
     {
       GameSession? gameSession = GetGameSession(sessionId);
       if (gameSession is null)
@@ -115,9 +121,9 @@ public class WordleOffHub : Hub
       {
         case AddPlayerResult.Success:
         case AddPlayerResult.ConnectionRestored:
+          await dbCtx.ConnectionIdToSessionIds.AddAsync(new(Context.ConnectionId, gameSession.SessionId));
           await SaveGameSessionToDbAsync(gameSession);
           await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-          connectionIdSessionIds.TryAdd(Context.ConnectionId, sessionId);
           if (requestFullWords)
             await SendFullWordsCompressedAsync();
           await SendCurrentAnswerAsync(gameSession, false);
@@ -152,14 +158,13 @@ public class WordleOffHub : Hub
       return;
     }
     await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-    connectionIdSessionIds.TryAdd(Context.ConnectionId, sessionId);
     await SendCurrentAnswerAsync(gameSession, false);
     await SendFullGameStateAsync(gameSession);
   }
 
   public async Task ClientReconnect(String sessionId, String playerName, Boolean spectatorMode)
   {
-    await DBOps(async () =>
+    await DBOpsAsync(async () =>
     {
       GameSession? gameSession = GetGameSession(sessionId);
       if (gameSession is null)
@@ -168,19 +173,19 @@ public class WordleOffHub : Hub
         return;
       }
       if (!spectatorMode) // Check if Spectator
-      {
         if (gameSession.ReconnectPlayer(playerName, Context.ConnectionId)) // Actual Player
+        {
+          await dbCtx.ConnectionIdToSessionIds.AddAsync(new(Context.ConnectionId, gameSession.SessionId));
           await SaveGameSessionToDbAsync(gameSession);
-      }
+        }
       await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-      connectionIdSessionIds.TryAdd(Context.ConnectionId, sessionId);
       await SendFullGameStateAsync(gameSession);
     });
   }
 
   public async Task ClientSubmitGuess(String sessionId, String playerName, String guess)
   {
-    await DBOps(async () =>
+    await DBOpsAsync(async () =>
     {
       GameSession? gameSession = GetGameSession(sessionId);
       if (gameSession is not null)
@@ -199,7 +204,7 @@ public class WordleOffHub : Hub
   public async Task ClientAdminInfo(String adminKey)
   {
     if (adminKey == Environment.GetEnvironmentVariable("ADMIN_KEY"))
-      await Clients.Caller.SendAsync("ServerAdminInfo", await dbCtx.GameSessions!.ToListAsync());
+      await Clients.Caller.SendAsync("ServerAdminInfo", await dbCtx.GameSessions.ToListAsync());
   }
 
   #endregion
@@ -292,7 +297,7 @@ public class WordleOffHub : Hub
     return newSessionId;
   }
 
-  private GameSession? GetGameSession(String sessionId) => dbCtx.GameSessions!.Find(sessionId);
+  private GameSession? GetGameSession(String sessionId) => dbCtx.GameSessions.Find(sessionId);
 
   private Boolean GameSessionExist(String sessionId) => GetGameSession(sessionId) is not null;
 
@@ -308,7 +313,7 @@ public class WordleOffHub : Hub
         {
           if (gameSession is not null)
           {
-            await DBOps(async () =>
+            await DBOpsAsync(async () =>
             {
               String sessionId = gameSession.SessionId;
               GameSession? tempSession = tempCtx.GameSessions.Find(sessionId);
@@ -338,12 +343,17 @@ public class WordleOffHub : Hub
       WordleOffContext tempCtx = new();
       if (tempCtx.GameSessions is not null)
       {
-        await DBOps(async () =>
+        await DBOpsAsync(async () =>
         {
           var expiredSessions = tempCtx.GameSessions.ToList().Where(x => x.SessionExpired);
           foreach (GameSession? gameSession in expiredSessions)
             if (gameSession is not null)
+            {
               tempCtx.GameSessions.Remove(gameSession);
+              foreach (ConnectionIdToSessionId conn in tempCtx.ConnectionIdToSessionIds.Where(x => x.SessionId == gameSession.SessionId).ToList())
+                tempCtx.ConnectionIdToSessionIds.Remove(conn);
+            }
+
           await tempCtx.SaveChangesAsync();
         });
       }
@@ -356,11 +366,9 @@ public class WordleOffHub : Hub
   public async override Task OnDisconnectedAsync(Exception? exception)
   {
     await base.OnDisconnectedAsync(exception);
-    connectionIdSessionIds.Remove(Context.ConnectionId, out String? sessionId);
+    String? sessionId = await RemoveConnectionIdToSessionId(Context.ConnectionId);
     if (sessionId is not null)
-    {
-      await Groups.RemoveFromGroupAsync(Context.ConnectionId, sessionId);
-      await DBOps(async () =>
+      await DBOpsAsync(async () =>
       {
         GameSession? gameSession = GetGameSession(sessionId);
         if (gameSession is not null)
@@ -370,13 +378,31 @@ public class WordleOffHub : Hub
           await SendFullGameStateAsync(gameSession);
         }
       });
-    }
     latestClients = Clients;
   }
 
   public static void SleepRandomForDbRetry() => Thread.Sleep(random.Next(1, 150));
 
-  public async static Task DBOps(Func<Task> func)
+  public async Task<String?> GetSessionIdFromConnectionId(String connectionId)
+    => (await dbCtx.ConnectionIdToSessionIds.FindAsync(connectionId))?.SessionId;
+
+  public async Task<String?> RemoveConnectionIdToSessionId(String connectionId)
+  {
+    String? sessionId = null;
+    await DBOpsAsync(async () =>
+    {
+      ConnectionIdToSessionId? map = await dbCtx.ConnectionIdToSessionIds.FindAsync(connectionId);
+      if (map is not null)
+      {
+        sessionId = map.SessionId;
+        dbCtx.ConnectionIdToSessionIds.Remove(map);
+        await dbCtx.SaveChangesAsync();
+      }
+    });
+    return sessionId;
+  }
+
+  public async static Task DBOpsAsync(Func<Task> func)
   {
     Int32 tryCount = 0;
     while (tryCount < DbRetryCount)
