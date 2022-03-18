@@ -225,25 +225,10 @@ public class WordleOffHub : Hub
 
   public async Task SendFullGameStateAsync(GameSession gameSession, Boolean sendToWholeGroup = true)
   {
-    Dictionary<String, PlayerData> strippedDictionary = new();
-    foreach (var pair in gameSession.PlayerDataDictionary)
-    {
-      PlayerData playerData = pair.Value;
-      PlayerData newPlayerData = new()
-      {
-        Index = playerData.Index,
-        ConnectionId = "",
-        ClientGuid = "",
-        DisconnectedDateTime = playerData.DisconnectedDateTime,
-        PlayData = playerData.PlayData
-      };
-      strippedDictionary.Add(pair.Key, newPlayerData);
-    }
-
     if (sendToWholeGroup)
-      await Clients.Group(gameSession.SessionId).SendAsync("ServerPlayerData", strippedDictionary);
+      await Clients.Group(gameSession.SessionId).SendAsync("ServerPlayerData", gameSession.PlayerDataDictionary);
     else
-      await Clients.Caller.SendAsync("ServerPlayerData", strippedDictionary);
+      await Clients.Caller.SendAsync("ServerPlayerData", gameSession.PlayerDataDictionary);
   }
 
   public async Task SendJoinErrorAsync(ServerJoinError error) => await Clients.Caller.SendAsync("ServerJoinError", error);
