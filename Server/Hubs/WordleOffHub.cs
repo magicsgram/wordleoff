@@ -293,7 +293,7 @@ public class WordleOffHub : Hub
       WordleOffContext tempCtx = new();
       if (tempCtx.GameSessions is not null)
       {
-        List<GameSession> gameSessionList = tempCtx.GameSessions.ToList();
+        var gameSessionList = await tempCtx.GameSessions.ToListAsync();
         foreach (GameSession gameSession in gameSessionList)
         {
           if (gameSession is not null)
@@ -325,26 +325,25 @@ public class WordleOffHub : Hub
   {
     Task.Run(async () =>
     {
+      GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+      GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
       WordleOffContext tempCtx = new();
       if (tempCtx.GameSessions is not null)
       {
         await DBOpsAsync(async () =>
         {
-          var expiredSessions = tempCtx.GameSessions.ToList().Where(x => x.SessionExpired);
+          var expiredSessions = await tempCtx.GameSessions.Where(x => x.SessionExpired).ToListAsync();
           foreach (GameSession? gameSession in expiredSessions)
             if (gameSession is not null)
             {
               tempCtx.GameSessions.Remove(gameSession);
-              foreach (ConnectionIdToSessionId conn in tempCtx.ConnectionIdToSessionIds.Where(x => x.SessionId == gameSession.SessionId).ToList())
+              foreach (ConnectionIdToSessionId conn in await tempCtx.ConnectionIdToSessionIds.Where(x => x.SessionId == gameSession.SessionId).ToListAsync())
                 tempCtx.ConnectionIdToSessionIds.Remove(conn);
             }
-
           await tempCtx.SaveChangesAsync();
         });
       }
       await tempCtx.DisposeAsync();
-      GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-      GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
     });
   }
 
