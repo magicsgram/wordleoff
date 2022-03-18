@@ -62,62 +62,39 @@ public class WordleOffHub : Hub
   public async Task ClientCreateNewSession(String clientGuid)
   {
     connectionIdSessionIds.Remove(Context.ConnectionId, out String? sessionId);
-    if (dbCtx.GameSessions is not null)
+
+    await DBOps(async () =>
     {
-      Int32 tryCount = 0;
-      while (tryCount < DbRetryCount)
+      if (sessionId is not null)
       {
-        try
-        {
-          if (sessionId is not null)
-          {
-            GameSession? gameSession = GetGameSession(sessionId);
-            if (gameSession is not null)
-              gameSession.DisconnectPlayer(clientGuid);
-          }
-          GameSession newGameSession = CreateNewSession();
-          await dbCtx.GameSessions.AddAsync(newGameSession);
-          await SaveGameSessionToDbAsync();
-          await Clients.Caller.SendAsync("NewSessionCreated", newGameSession.SessionId);
-          break;
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-          SleepRandomForDbRetry();
-          ++tryCount;
-        }
-        catch (Exception) { break; }
+        GameSession? gameSession = GetGameSession(sessionId);
+        if (gameSession is not null)
+          gameSession.DisconnectPlayer(clientGuid);
       }
-    }
+      GameSession newGameSession = CreateNewSession();
+      await dbCtx.GameSessions.AddAsync(newGameSession);
+      await SaveGameSessionToDbAsync();
+      await Clients.Caller.SendAsync("NewSessionCreated", newGameSession.SessionId);
+    });
   }
 
   public async Task ClientResetCurrentSession(String sessionId)
   {
-    Int32 tryCount = 0;
-    while (tryCount < DbRetryCount)
+    await DBOps(async () =>
     {
-      try
+      GameSession? gameSession = GetGameSession(sessionId);
+      if (gameSession is null)
       {
-        GameSession? gameSession = GetGameSession(sessionId);
-        if (gameSession is null)
-        {
-          await SendJoinErrorAsync(ServerJoinError.SessionNotFound);
-          return;
-        }
-        gameSession.ResetGame();
-        await SaveGameSessionToDbAsync(gameSession);
+        await SendJoinErrorAsync(ServerJoinError.SessionNotFound);
+        return;
+      }
 
-        await SendCurrentAnswerAsync(gameSession);
-        await SendFullGameStateAsync(gameSession);
-        break;
-      }
-      catch (DbUpdateConcurrencyException)
-      {
-        SleepRandomForDbRetry();
-        ++tryCount;
-      }
-      catch (Exception) { break; }
-    }
+      gameSession.ResetGame();
+      await SaveGameSessionToDbAsync(gameSession);
+
+      await SendCurrentAnswerAsync(gameSession);
+      await SendFullGameStateAsync(gameSession);
+    });
   }
 
   public async Task ClientSearchSession(String sessionId)
@@ -125,56 +102,45 @@ public class WordleOffHub : Hub
 
   public async Task ClientConnectNew(String sessionId, String clientGuid, String newPlayerName, Boolean restore, Boolean requestFullWords)
   {
-    Int32 tryCount = 0;
-    while (tryCount < DbRetryCount)
+    await DBOps(async () =>
     {
-      try
+      GameSession? gameSession = GetGameSession(sessionId);
+      if (gameSession is null)
       {
-        GameSession? gameSession = GetGameSession(sessionId);
-        if (gameSession is null)
-        {
-          await SendJoinErrorAsync(ServerJoinError.SessionNotFound);
-          return;
-        }
-        var result = gameSession.AddPlayer(Context.ConnectionId, clientGuid, newPlayerName, restore);
-        switch (result)
-        {
-          case AddPlayerResult.Success:
-          case AddPlayerResult.ConnectionRestored:
-            await SaveGameSessionToDbAsync(gameSession);
-            await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-            connectionIdSessionIds.TryAdd(Context.ConnectionId, sessionId);
-            if (requestFullWords)
-              await SendFullWordsCompressedAsync();
-            await SendCurrentAnswerAsync(gameSession, false);
-            await SendFullGameStateAsync(gameSession);
-            break;
-
-          case AddPlayerResult.PlayerNameExist:
-            await SendJoinErrorAsync(ServerJoinError.NameTaken);
-            break;
-
-          case AddPlayerResult.PlayerMaxed:
-            await SendJoinErrorAsync(ServerJoinError.SessionFull);
-            break;
-
-          case AddPlayerResult.CannotRestore:
-            await SendJoinErrorAsync(ServerJoinError.CannotRestore);
-            break;
-
-          default:
-            // TODO: Send an error message
-            break;
-        }
-        break;
+        await SendJoinErrorAsync(ServerJoinError.SessionNotFound);
+        return;
       }
-      catch (DbUpdateConcurrencyException)
+      var result = gameSession.AddPlayer(Context.ConnectionId, clientGuid, newPlayerName, restore);
+      switch (result)
       {
-        SleepRandomForDbRetry();
-        ++tryCount;
+        case AddPlayerResult.Success:
+        case AddPlayerResult.ConnectionRestored:
+          await SaveGameSessionToDbAsync(gameSession);
+          await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
+          connectionIdSessionIds.TryAdd(Context.ConnectionId, sessionId);
+          if (requestFullWords)
+            await SendFullWordsCompressedAsync();
+          await SendCurrentAnswerAsync(gameSession, false);
+          await SendFullGameStateAsync(gameSession);
+          break;
+
+        case AddPlayerResult.PlayerNameExist:
+          await SendJoinErrorAsync(ServerJoinError.NameTaken);
+          break;
+
+        case AddPlayerResult.PlayerMaxed:
+          await SendJoinErrorAsync(ServerJoinError.SessionFull);
+          break;
+
+        case AddPlayerResult.CannotRestore:
+          await SendJoinErrorAsync(ServerJoinError.CannotRestore);
+          break;
+
+        default:
+          // TODO: Send an error message
+          break;
       }
-      catch (Exception) { break; }
-    }
+    });
   }
 
   public async Task ClientConnectAsSpectator(String sessionId)
@@ -193,61 +159,39 @@ public class WordleOffHub : Hub
 
   public async Task ClientReconnect(String sessionId, String playerName, Boolean spectatorMode)
   {
-    Int32 tryCount = 0;
-    while (tryCount < DbRetryCount)
+    await DBOps(async () =>
     {
-      try
+      GameSession? gameSession = GetGameSession(sessionId);
+      if (gameSession is null)
       {
-        GameSession? gameSession = GetGameSession(sessionId);
-        if (gameSession is null)
-        {
-          await SendJoinErrorAsync(ServerJoinError.SessionNotFound);
-          return;
-        }
-        if (!spectatorMode) // Check if Spectator
-        {
-          if (gameSession.ReconnectPlayer(playerName, Context.ConnectionId)) // Actual Player
-            await SaveGameSessionToDbAsync(gameSession);
-        }
-        await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
-        connectionIdSessionIds.TryAdd(Context.ConnectionId, sessionId);
-        await SendFullGameStateAsync(gameSession);
-        break;
+        await SendJoinErrorAsync(ServerJoinError.SessionNotFound);
+        return;
       }
-      catch (DbUpdateConcurrencyException)
+      if (!spectatorMode) // Check if Spectator
       {
-        SleepRandomForDbRetry();
-        ++tryCount;
+        if (gameSession.ReconnectPlayer(playerName, Context.ConnectionId)) // Actual Player
+          await SaveGameSessionToDbAsync(gameSession);
       }
-      catch (Exception) { break; }
-    }
+      await Groups.AddToGroupAsync(Context.ConnectionId, sessionId);
+      connectionIdSessionIds.TryAdd(Context.ConnectionId, sessionId);
+      await SendFullGameStateAsync(gameSession);
+    });
   }
 
   public async Task ClientSubmitGuess(String sessionId, String playerName, String guess)
   {
-    Int32 tryCount = 0;
-    while (tryCount < DbRetryCount)
+    await DBOps(async () =>
     {
-      try
+      GameSession? gameSession = GetGameSession(sessionId);
+      if (gameSession is not null)
       {
-        GameSession? gameSession = GetGameSession(sessionId);
-        if (gameSession is not null)
+        if (gameSession.EnterGuess(playerName, guess) == EnterWordResult.Success)
         {
-          if (gameSession.EnterGuess(playerName, guess) == EnterWordResult.Success)
-          {
-            await SaveGameSessionToDbAsync(gameSession);
-            await SendFullGameStateAsync(gameSession);
-          }
+          await SaveGameSessionToDbAsync(gameSession);
+          await SendFullGameStateAsync(gameSession);
         }
-        break;
       }
-      catch (DbUpdateConcurrencyException)
-      {
-        SleepRandomForDbRetry();
-        ++tryCount;
-      }
-      catch (Exception) { break; }
-    }
+    });
   }
 
   public async Task ClientSubmitGuess2(String sessionId, String playerName, String guess) => await ClientSubmitGuess(sessionId, playerName, guess);
@@ -364,33 +308,22 @@ public class WordleOffHub : Hub
         {
           if (gameSession is not null)
           {
-            Int32 tryCount = 0;
-            while (tryCount < DbRetryCount)
+            await DBOps(async () =>
             {
               String sessionId = gameSession.SessionId;
-              try
+              GameSession? tempSession = tempCtx.GameSessions.Find(sessionId);
+              if (tempSession is not null && tempSession.RemoveDisconnectedPlayer())
               {
-                GameSession? tempSession = tempCtx.GameSessions.Find(sessionId);
-                if (tempSession is not null && tempSession.RemoveDisconnectedPlayer())
+                tempCtx.Update(tempSession);
+                await tempCtx.SaveChangesAsync();
+                if (latestClients is not null)
                 {
-                  tempCtx.Update(tempSession);
-                  await tempCtx.SaveChangesAsync();
-                  if (latestClients is not null)
-                  {
-                    WordleOffHub newHub = new();
-                    newHub.Clients = latestClients;
-                    await newHub.SendFullGameStateAsync(tempSession);
-                  }
+                  WordleOffHub newHub = new();
+                  newHub.Clients = latestClients;
+                  await newHub.SendFullGameStateAsync(tempSession);
                 }
-                break;
               }
-              catch (DbUpdateConcurrencyException)
-              {
-                SleepRandomForDbRetry();
-                ++tryCount;
-              }
-              catch (Exception) { break; }
-            }
+            });
           }
         }
       }
@@ -405,25 +338,14 @@ public class WordleOffHub : Hub
       WordleOffContext tempCtx = new();
       if (tempCtx.GameSessions is not null)
       {
-        Int32 tryCount = 0;
-        while (tryCount < DbRetryCount)
+        await DBOps(async () =>
         {
           var expiredSessions = tempCtx.GameSessions.ToList().Where(x => x.SessionExpired);
           foreach (GameSession? gameSession in expiredSessions)
             if (gameSession is not null)
               tempCtx.GameSessions.Remove(gameSession);
-          try
-          {
-            await tempCtx.SaveChangesAsync();
-            break;
-          }
-          catch (DbUpdateConcurrencyException)
-          {
-            SleepRandomForDbRetry();
-            ++tryCount;
-          }
-          catch (Exception) { break; }
-        }
+          await tempCtx.SaveChangesAsync();
+        });
       }
       await tempCtx.DisposeAsync();
       GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
@@ -438,32 +360,40 @@ public class WordleOffHub : Hub
     if (sessionId is not null)
     {
       await Groups.RemoveFromGroupAsync(Context.ConnectionId, sessionId);
-      Int32 tryCount = 0;
-      while (tryCount < DbRetryCount)
+      await DBOps(async () =>
       {
-        try
+        GameSession? gameSession = GetGameSession(sessionId);
+        if (gameSession is not null)
         {
-          GameSession? gameSession = GetGameSession(sessionId);
-          if (gameSession is not null)
-          {
-            gameSession.DisconnectPlayer(Context.ConnectionId);
-            await SaveGameSessionToDbAsync(gameSession);
-            await SendFullGameStateAsync(gameSession);
-            break;
-          }
+          gameSession.DisconnectPlayer(Context.ConnectionId);
+          await SaveGameSessionToDbAsync(gameSession);
+          await SendFullGameStateAsync(gameSession);
         }
-        catch (DbUpdateConcurrencyException)
-        {
-          SleepRandomForDbRetry();
-          ++tryCount;
-        }
-        catch (Exception) { }
-      }
+      });
     }
     latestClients = Clients;
   }
 
   public static void SleepRandomForDbRetry() => Thread.Sleep(random.Next(1, 150));
+
+  public async static Task DBOps(Func<Task> func)
+  {
+    Int32 tryCount = 0;
+    while (tryCount < DbRetryCount)
+    {
+      try
+      {
+        await func();
+        break;
+      }
+      catch (DbUpdateConcurrencyException)
+      {
+        SleepRandomForDbRetry();
+        ++tryCount;
+      }
+      catch (Exception) { break; }
+    }
+  }
 
   #endregion
 }

@@ -6,12 +6,14 @@ namespace WordleOff.Server.Hubs;
 
 public class WordleOffContext : DbContext
 {
-  public DbSet<GameSession>? GameSessions { get; set; }
+  public DbSet<GameSession> GameSessions => Set<GameSession>();
+  public DbSet<ConnectionIdToSessionId> ConnectionIdToSessionIds => Set<ConnectionIdToSessionId>();
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
     base.OnModelCreating(modelBuilder);
 
+    // GameSessions related
     modelBuilder.Entity<GameSession>()
       .Property(x => x.PlayerDataDictionary)
       .HasConversion(
@@ -33,6 +35,11 @@ public class WordleOffContext : DbContext
 
     modelBuilder.Entity<GameSession>()
       .HasIndex(x => x.SessionId);
+
+    // ConnectionIdToSessionIds related
+    modelBuilder.Entity<ConnectionIdToSessionId>()
+      .HasIndex(x => x.ConnectionId)
+      .IsUnique();
   }
 
   protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
