@@ -49,6 +49,7 @@
 
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
+      .AddMessagePackProtocol()
       .Build();
     hubConnection.Closed += async (e) => await OnClosed(e);
     hubConnection.On<String>("NewSessionCreated", (newSessionId) => NavigationManager.NavigateTo($"game/{newSessionId}"));

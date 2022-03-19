@@ -153,6 +153,7 @@
 
     hubConnection = new HubConnectionBuilder()
       .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
+      .AddMessagePackProtocol()
       .Build();
     hubConnection.Closed += async (e) => await OnClosedAsync(e);
     hubConnection.Reconnected += async (e) => await ReconnectPlayerToSessionAsync();

@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 #region snippet_ConfigureServices
-builder.Services.AddSignalR();
+builder.Services.AddSignalR().AddMessagePackProtocol();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddResponseCompression(opts =>
