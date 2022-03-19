@@ -58,7 +58,9 @@ public class WordleOffHub : Hub
 
   #region Received from Client
 
-  public async Task ClientCreateNewSession2()
+  public async Task ClientCreateNewSession2() => await ClientCreateNewSession(); // Remove this later
+
+  public async Task ClientCreateNewSession()
   {
     await DBOpsAsync(async () =>
     {
@@ -68,8 +70,6 @@ public class WordleOffHub : Hub
       await Clients.Caller.SendAsync("NewSessionCreated", newGameSession.SessionId);
     });
   }
-
-  public async Task ClientCreateNewSession(String clientGuid) => await ClientCreateNewSession2(); // Deprecated
 
   public async Task ClientResetCurrentSession(String sessionId)
   {
