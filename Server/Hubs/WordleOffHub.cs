@@ -192,16 +192,23 @@ public class WordleOffHub : Hub
       GameSession? gameSession = GetGameSession(sessionId);
       if (gameSession is not null)
       {
-        if (gameSession.EnterGuess(playerName, guess) == EnterWordResult.Success)
+        Int32 placement = gameSession.EnterGuess(playerName, guess);
+        if (placement > 0)
         {
+          String decryptedWord = EncryptDecrypt.XorDecrypt(guess);
+          WordStat? wordStat = dbCtx.WordStats.Find(decryptedWord);
+          if (wordStat is null)
+          {
+            wordStat = new WordStat(decryptedWord);
+            dbCtx.WordStats.Add(wordStat);
+          }
+          wordStat.WordSubmitted(placement);
           await SaveGameSessionToDbAsync(gameSession);
           await SendFullGameStateAsync(gameSession);
         }
       }
     });
   }
-
-  public async Task ClientSubmitGuess2(String sessionId, String playerName, String guess) => await ClientSubmitGuess(sessionId, playerName, guess);
 
   public async Task ClientAdminInfo(String adminKey)
   {
@@ -327,26 +334,25 @@ public class WordleOffHub : Hub
   {
     Task.Run(async () =>
     {
-      GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-      GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
       WordleOffContext tempCtx = new();
       if (tempCtx.GameSessions is not null)
       {
         await DBOpsAsync(async () =>
         {
-          var expiredSessions = await tempCtx.GameSessions.Where(x => x.SessionExpired).ToListAsync();
-          foreach (GameSession? gameSession in expiredSessions)
-            if (gameSession is not null)
-            {
-              tempCtx.GameSessions.Remove(gameSession);
-              foreach (ConnectionIdToSessionId conn in await tempCtx.ConnectionIdToSessionIds.Where(x => x.SessionId == gameSession.SessionId).ToListAsync())
-                tempCtx.ConnectionIdToSessionIds.Remove(conn);
-            }
+          List<GameSession> expiredSessions = (await tempCtx.GameSessions.ToListAsync()).Where(x => x.SessionExpired).ToList();
+          foreach (GameSession gameSession in expiredSessions)
+          {
+            tempCtx.GameSessions.Remove(gameSession);
+            foreach (ConnectionIdToSessionId conn in await tempCtx.ConnectionIdToSessionIds.Where(x => x.SessionId == gameSession.SessionId).ToListAsync())
+              tempCtx.ConnectionIdToSessionIds.Remove(conn);
+          }
           await tempCtx.SaveChangesAsync();
         });
       }
       await tempCtx.DisposeAsync();
     });
+    GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
   }
 
   public async override Task OnDisconnectedAsync(Exception? exception)

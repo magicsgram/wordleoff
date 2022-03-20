@@ -60,13 +60,14 @@ app.MapFallbackToFile("index.html");
 
 // Do some initializations
 WordleOffHub.StaticInitialize();
+WordsService.Initialize();
 
 WordleOffContext dbCtx = new();
 dbCtx.Database.Migrate();
 dbCtx.SaveChanges();
 
 dbCtx = new();
-foreach (GameSession gameSession in dbCtx.GameSessions!.ToList())
+foreach (GameSession gameSession in dbCtx.GameSessions.ToList())
 {
   gameSession.TreatAllPlayersAsDisconnected(out Boolean updated);
   if (updated)
@@ -83,6 +84,8 @@ try
   dbCtx.SaveChanges();
 }
 catch { }
+
+dbCtx.Dispose();
 
 // Run
 app.Run();

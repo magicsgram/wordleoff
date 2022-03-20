@@ -12,13 +12,6 @@ public enum AddPlayerResult
   Unknown
 }
 
-public enum EnterWordResult
-{
-  Success,
-  MaxGuesses,
-  PlayerNotFound
-}
-
 public class GameSession
 {
   private const Int32 MaxPlayers = 16;
@@ -172,17 +165,17 @@ public class GameSession
     return playerNamesToRemove.Count > 0;
   }
 
-  public EnterWordResult EnterGuess(String playerName, String word)
+  public Int32 EnterGuess(String playerName, String word)
   {
     UpdatedAt = DateTimeOffset.UtcNow;
 
     if (!PlayerDataDictionary.ContainsKey(playerName))
-      return EnterWordResult.PlayerNotFound;
+      return 0;
 
     if (PlayerDataDictionary[playerName].PlayData.Count >= 6)
-      return EnterWordResult.MaxGuesses;
+      return 0;
     PlayerDataDictionary[playerName].PlayData.Add(word);
     PlayerDataDictionary[playerName].DisconnectedDateTime = null;
-    return EnterWordResult.Success;
+    return PlayerDataDictionary[playerName].PlayData.Count;
   }
 }
