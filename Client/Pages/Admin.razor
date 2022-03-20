@@ -50,10 +50,10 @@
         Past answers: @String.Join(" - ", gameSession.PastAnswers.ToArray())
       </div>
       <div>
-        Created: @(GetBrowserLocalTime(gameSession.CreatedAt!.Value))
+        Created: @(GetBrowserLocalTime(gameSession.CreatedAt))
       </div>
       <div>
-        Updated: @(GetBrowserLocalTime(gameSession.UpdatedAt!.Value))
+        Updated: @(GetBrowserLocalTime(gameSession.UpdatedAt))
       </div>
       <div>
         Session lasted for: @(gameSession.UpdatedAt - gameSession.CreatedAt)

@@ -14,7 +14,7 @@ public enum AddPlayerResult
 
 public class GameSession
 {
-  private const Int32 MaxPlayers = 16;
+  public const Int32 MaxPlayers = 16;
   private const Int32 GameSessionExpireMinutes = 120;
   private const Int32 PastAnswersMaxSize = 500;
 
@@ -22,8 +22,14 @@ public class GameSession
   public String SessionId { get; set; } = "";
   public Dictionary<String, PlayerData> PlayerDataDictionary { get; set; } = new();
   public Queue<String> PastAnswers { get; set; } = new();
-  public DateTimeOffset? CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-  public DateTimeOffset? UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+  public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+  public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+  public DateTimeOffset GameStartedAt { get; set; } = DateTimeOffset.UtcNow;
+  public Int32 TotalGameTimeSeconds { get; set; } = 0;
+  public Int32 TotalGamesPlayed { get; set; } = 0;
+  public Int32 TotalPlayersConnected { get; set; } = 0;
+  public Int32 MaxPlayersConnected { get; set; } = 0;
 
   public String CurrentAnswer { get { return PastAnswers.Last(); } }
   public Boolean SessionExpired
@@ -31,7 +37,7 @@ public class GameSession
     get
     {
       DateTimeOffset now = DateTimeOffset.UtcNow;
-      TimeSpan sinceLastUpdate = now - (UpdatedAt ?? now);
+      TimeSpan sinceLastUpdate = now - UpdatedAt;
       return TimeSpan.FromMinutes(GameSessionExpireMinutes) < sinceLastUpdate;
     }
   }
@@ -55,7 +61,11 @@ public class GameSession
     foreach (var pair in PlayerDataDictionary)
       pair.Value.PlayData.Clear();
 
-    UpdatedAt = DateTimeOffset.UtcNow;
+    TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
+    ++TotalGamesPlayed;
+    DateTimeOffset now = DateTimeOffset.UtcNow;
+    GameStartedAt = now;
+    UpdatedAt = now;
   }
 
   private void SetNewRandomAnswer()
@@ -104,9 +114,17 @@ public class GameSession
       PlayData = new(),
       DisconnectedDateTime = null
     };
-
+    DateTimeOffset now = DateTimeOffset.UtcNow;
+    if (PlayerDataDictionary.Count == 0)
+    {
+      GameStartedAt = now;
+      ++TotalGamesPlayed;
+    }
     PlayerDataDictionary.Add(newPlayerName, newPlayerData);
-    UpdatedAt = DateTimeOffset.UtcNow;
+    UpdatedAt = now;
+    ++TotalPlayersConnected;
+    if (MaxPlayersConnected < PlayerDataDictionary.Count)
+      MaxPlayersConnected = PlayerDataDictionary.Count;
     return AddPlayerResult.Success;
   }
 
@@ -160,9 +178,17 @@ public class GameSession
     if (PlayerDataDictionary.Count == 0 && playerNamesToRemove.Count > 0)
     {
       SetNewRandomAnswer();
+      TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
+      GameStartedAt = now;
       UpdatedAt = now;
     }
     return playerNamesToRemove.Count > 0;
+  }
+
+  public void PrepForRemoval()
+  { // There are still players connected. They'll get booted.
+    if (PlayerDataDictionary.Count > 0)
+      TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
   }
 
   public Int32 EnterGuess(String playerName, String word)

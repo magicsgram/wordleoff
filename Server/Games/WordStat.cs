@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace WordleOff.Server.Hubs;
+namespace WordleOff.Shared.Games;
 public class WordStat
 {
   [Key]

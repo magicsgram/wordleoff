@@ -56,9 +56,8 @@ public class WordleOffHub : Hub
     dbCtx.Dispose();
   }
 
-  #region Received from Client
 
-  public async Task ClientCreateNewSession2() => await ClientCreateNewSession(); // Remove this later
+  #region Received from Client
 
   public async Task ClientCreateNewSession()
   {
@@ -66,6 +65,8 @@ public class WordleOffHub : Hub
     {
       GameSession newGameSession = CreateNewSession();
       await dbCtx.GameSessions.AddAsync(newGameSession);
+      SessionStat stat = await RetrieveOrCreateSessionStatAsync(dbCtx, "TotalSessionsCreated");
+      ++stat.Count;
       await SaveGameSessionToDbAsync();
       await Clients.Caller.SendAsync("NewSessionCreated", newGameSession.SessionId);
     });
@@ -109,7 +110,7 @@ public class WordleOffHub : Hub
         }
       });
     }
- 
+
     await DBOpsAsync(async () =>
     {
       GameSession? gameSession = GetGameSession(sessionId);
@@ -329,9 +330,10 @@ public class WordleOffHub : Hub
       await tempCtx.DisposeAsync();
     });
   }
- 
+
   public static void RemoveExpiredSessions(Object? sender, System.Timers.ElapsedEventArgs e)
   {
+    GC.Collect(); // Necessary? It helped to keep the app unber 512MB
     Task.Run(async () =>
     {
       WordleOffContext tempCtx = new();
@@ -339,20 +341,60 @@ public class WordleOffHub : Hub
       {
         await DBOpsAsync(async () =>
         {
+          UInt64 totalPlayers = 0;
+          UInt64 totalSessionTimeSeconds = 0;
+          UInt64 totalGamesPlayed = 0;
+          UInt64 totalGameTimeSeconds = 0;
+          List<Int32> maxPlayersList = new();
+
           List<GameSession> expiredSessions = (await tempCtx.GameSessions.ToListAsync()).Where(x => x.SessionExpired).ToList();
           foreach (GameSession gameSession in expiredSessions)
           {
+            gameSession.PrepForRemoval();
+            totalPlayers += (UInt64)gameSession.TotalPlayersConnected;
+            totalSessionTimeSeconds += (UInt64)Math.Round((gameSession.UpdatedAt - gameSession.CreatedAt).TotalSeconds);
+            totalGamesPlayed += (UInt64)gameSession.TotalGamesPlayed;
+            totalGameTimeSeconds += (UInt64)gameSession.TotalGameTimeSeconds;
+            maxPlayersList.Add(gameSession.MaxPlayersConnected);
+
             tempCtx.GameSessions.Remove(gameSession);
             foreach (ConnectionIdToSessionId conn in await tempCtx.ConnectionIdToSessionIds.Where(x => x.SessionId == gameSession.SessionId).ToListAsync())
               tempCtx.ConnectionIdToSessionIds.Remove(conn);
           }
+          SessionStat totalPlayersStat = await RetrieveOrCreateSessionStatAsync(tempCtx, "TotalPlayers");
+          totalPlayersStat.Count += totalPlayers;
+
+          SessionStat totalSessionTimeSecondsStat = await RetrieveOrCreateSessionStatAsync(tempCtx, "TotalSessionTimeSeconds");
+          totalSessionTimeSecondsStat.Count += totalSessionTimeSeconds;
+
+          SessionStat totalGamesPlayedStat = await RetrieveOrCreateSessionStatAsync(tempCtx, "TotalGamesPlayed");
+          totalGamesPlayedStat.Count += totalGamesPlayed;
+
+          SessionStat totalGameTimeSecondsStat = await RetrieveOrCreateSessionStatAsync(tempCtx, "TotalGameTimeSeconds");
+          totalGameTimeSecondsStat.Count += totalGameTimeSeconds;
+
+          List<SessionStat> maxPlayerCountStatList = new(16);
+          for (Int32 i = 0; i <= GameSession.MaxPlayers; ++i)
+            maxPlayerCountStatList.Add(await RetrieveOrCreateSessionStatAsync(tempCtx, $"MaxPlayerCount_{i}"));
+          foreach (Int32 maxPlayerCount in maxPlayersList)
+            ++maxPlayerCountStatList[maxPlayerCount].Count;
+
           await tempCtx.SaveChangesAsync();
         });
       }
       await tempCtx.DisposeAsync();
     });
-    GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
-    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
+  }
+
+  public static async Task<SessionStat> RetrieveOrCreateSessionStatAsync(WordleOffContext localCtx, String category)
+  {
+    SessionStat? stat = await localCtx.SessionStats.FindAsync(category);
+    if (stat is null)
+    {
+      stat = new(category);
+      await localCtx.SessionStats.AddAsync(stat);
+    }
+    return stat;
   }
 
   public async override Task OnDisconnectedAsync(Exception? exception)

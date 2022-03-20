@@ -9,6 +9,7 @@ public class WordleOffContext : DbContext
   public DbSet<GameSession> GameSessions => Set<GameSession>();
   public DbSet<ConnectionIdToSessionId> ConnectionIdToSessionIds => Set<ConnectionIdToSessionId>();
   public DbSet<WordStat> WordStats => Set<WordStat>();
+  public DbSet<SessionStat> SessionStats => Set<SessionStat>();
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {
@@ -51,6 +52,14 @@ public class WordleOffContext : DbContext
       .IsUnique();
 
     modelBuilder.Entity<WordStat>()
+      .UseXminAsConcurrencyToken();
+
+    // SessionStats related
+    modelBuilder.Entity<SessionStat>()
+      .HasIndex(x => x.Category)
+      .IsUnique();
+
+    modelBuilder.Entity<SessionStat>()
       .UseXminAsConcurrencyToken();
   }
 
