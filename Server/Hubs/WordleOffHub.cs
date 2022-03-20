@@ -351,6 +351,8 @@ public class WordleOffHub : Hub
       }
       await tempCtx.DisposeAsync();
     });
+    GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, true, true);
   }
 
   public async override Task OnDisconnectedAsync(Exception? exception)
