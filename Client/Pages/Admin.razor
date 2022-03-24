@@ -6,70 +6,129 @@
 @inject IJSRuntime jsRuntime
 
 <div class="scrollable">
-  <div>
-    General Stats
-  </div>
-  <div>
-    Total # of sessions alive: @gameSessions.Count
-  </div>
-  <div>
-    Total # of sessions w/ players: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 0).Count())
-  </div>
-  <div>
-    Total # of multiplayer sessions: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 1).Count())
-  </div>
-  <div>
-    Total # of players: @(gameSessions.Sum(x => x.PlayerDataDictionary.Count))
-  </div>
-  <div>
-    Total # of players in multiplayer: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 1).ToList().Sum(x => x.PlayerDataDictionary.Count))
-  </div>
-  <div>
-    Largest # of players in a session: @(gameSessions.MaxBy(x => x.PlayerDataDictionary.Count)?.PlayerDataDictionary.Count ?? 0)
-  </div>
-  <div>
-    Max Rounds: @(gameSessions.MaxBy(x => x.PastAnswers.Count)?.PastAnswers.Count ?? 0)
-  </div>
-  <hr />
-  @foreach (GameSession gameSession in gameSessions)
-  {
-    <div>
-      <div>
-        Session ID: @gameSession.SessionId
-      </div>
-      <div>
-        Player count: @gameSession.PlayerDataDictionary.Count
-      </div>
-      <div>
-        Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))</a>
-      </div>
-      <div>
-        Player names: @String.Join(" - ", gameSession.PlayerDataDictionary.OrderBy(x => x.Value.Index).Select(x => $"{x.Key} ({x.Value.PlayData.Count})").ToArray())
-      </div>
-      <div>
-        Past answers: @String.Join(" - ", gameSession.PastAnswers.ToArray())
-      </div>
-      <div>
-        Created: @(GetBrowserLocalTime(gameSession.CreatedAt))
-      </div>
-      <div>
-        Updated: @(GetBrowserLocalTime(gameSession.UpdatedAt))
-      </div>
-      <div>
-        Session lasted for: @(gameSession.UpdatedAt - gameSession.CreatedAt)
-      </div>
-      <div>
-        Last updated: @(DateTimeOffset.UtcNow - gameSession.UpdatedAt) ago
-      </div>
-    </div>
-    <hr />
-  }
+  <table>
+    <tr>
+      <td>
+        <div>
+          -Session Stats-
+        </div>
+        @foreach (SessionStat sessionStat in sessionStats)
+        {
+          <div>
+            @(sessionStat.Category): @(sessionStat.Count)
+          </div>
+        }
+        <br/>
+        @if (sessionStats.Count > 0)
+        {
+          <div>
+            Game time per session: @(TimeSpan.FromSeconds(sessionStats.Find(x => x.Category == "TotalGameTimeSeconds")!.Count * 1.0f / sessionStats.Find(x => x.Category == "TotalSessionsCreated")!.Count))
+          </div>
+        }
+
+          <hr/>
+          <div>
+            -Current Game Sessions-
+          </div>
+          <div>
+            Total # of sessions alive: @gameSessions.Count
+          </div>
+          <div>
+            Total # of sessions w/ players: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 0).Count())
+          </div>
+          <div>
+            Total # of multiplayer sessions: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 1).Count())
+          </div>
+          <div>
+            Total # of players: @(gameSessions.Sum(x => x.PlayerDataDictionary.Count))
+          </div>
+          <div>
+            Total # of players in multiplayer: @(gameSessions.Where(x => x.PlayerDataDictionary.Count > 1).ToList().Sum(x => x.PlayerDataDictionary.Count))
+          </div>
+          <div>
+            Largest # of players in a session: @(gameSessions.MaxBy(x => x.PlayerDataDictionary.Count)?.PlayerDataDictionary.Count ?? 0)
+          </div>
+          <div>
+            Max Rounds: @(gameSessions.MaxBy(x => x.PastAnswers.Count)?.PastAnswers.Count ?? 0)
+          </div>
+          <hr />
+          @foreach (GameSession gameSession in gameSessions)
+          {
+            <div>
+              <div>
+                Session ID: @gameSession.SessionId
+              </div>
+              <div>
+                Player count: @gameSession.PlayerDataDictionary.Count
+              </div>
+              <div>
+                Max players connected: @(gameSession.MaxPlayersConnected)
+              </div>
+              <div>
+                Total Players: @(gameSession.TotalGamesPlayed)
+              </div>
+              <div>
+                Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))</a>
+              </div>
+              <div>
+                Player names: @String.Join(" - ", gameSession.PlayerDataDictionary.OrderBy(x => x.Value.Index).Select(x => $"{x.Key} ({x.Value.PlayData.Count})").ToArray())
+              </div>
+              <div>
+                Past answers: @String.Join(" - ", gameSession.PastAnswers.ToArray())
+              </div>
+              <div>
+                Created: @(DateTimeOffsetFormat(GetBrowserLocalTime(gameSession.CreatedAt)))
+              </div>
+              <div>
+                Updated: @(DateTimeOffsetFormat(GetBrowserLocalTime(gameSession.UpdatedAt)))
+              </div>
+              <div>
+                Session lasted for: @(TimeSpanPrintFormat(gameSession.UpdatedAt - gameSession.CreatedAt))
+              </div>
+              <div>
+                Last updated: @(TimeSpanPrintFormat(DateTimeOffset.UtcNow - gameSession.UpdatedAt)) ago
+              </div>
+            </div>
+            <hr />
+          }
+      </td>
+      <td>
+        <table class="wordstat">
+          <tr class="wordstat">
+            <th class="wordstat">Word</th>
+            <th class="wordstat">Total</th>
+            <th class="wordstat">Round1</th>
+            <th class="wordstat">Round2</th>
+            <th class="wordstat">Round3</th>
+            <th class="wordstat">Round4</th>
+            <th class="wordstat">Round5</th>
+            <th class="wordstat">Round6</th>
+          </tr>
+          @foreach (WordStat wordStat in wordStats)
+          {
+            <tr class="wordstat">
+              <td class="wordstat">@(wordStat.Word)</td>
+              <td class="wordstat">@(wordStat.SubmitCountTotal)</td>
+              <td class="wordstat">@(wordStat.SubmitCountRound1)</td>
+              <td class="wordstat">@(wordStat.SubmitCountRound2)</td>
+              <td class="wordstat">@(wordStat.SubmitCountRound3)</td>
+              <td class="wordstat">@(wordStat.SubmitCountRound4)</td>
+              <td class="wordstat">@(wordStat.SubmitCountRound5)</td>
+              <td class="wordstat">@(wordStat.SubmitCountRound6)</td>
+            </tr>
+          }
+        </table>
+      </td>
+    </tr>
+  </table>
 </div>
 
 
-
 @code {
+  private List<SessionStat> sessionStats = new();
+  private List<WordStat> wordStats = new();
   private List<GameSession> gameSessions = new();
+
 
   private HubConnection? hubConnection;
   private TimeSpan offset = TimeSpan.Zero;
@@ -82,7 +141,9 @@
     hubConnection = new HubConnectionBuilder()
      .WithUrl(NavigationManager.ToAbsoluteUri("/WordleOffHub"))
      .Build();
-    hubConnection.On<List<GameSession>>("ServerAdminInfo", (newGameSessions) => ServerAdminInfo(newGameSessions));
+    hubConnection.On<List<GameSession>>("ServerAdminInfoGameSessions", (newGameSessions) => ServerAdminInfoGameSessions(newGameSessions));
+    hubConnection.On<List<WordStat>>("ServerAdminInfoWordStats", (newWordStats) => ServerAdminInfoWordStats(newWordStats));
+    hubConnection.On<List<SessionStat>>("SeverAdminInfoSessionStats", (newSessionStats) => SeverAdminInfoSessionStats(newSessionStats));
     await hubConnection.StartAsync();
 
     var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
@@ -90,7 +151,16 @@
       await hubConnection.InvokeAsync("ClientAdminInfo", adminKey.ToString());
   }
 
-  private void ServerAdminInfo(List<GameSession> newGameSessions)
+  private void SeverAdminInfoSessionStats(List<SessionStat> newSessionStats) => sessionStats = newSessionStats;
+
+  private void ServerAdminInfoWordStats(List<WordStat> newWordStats)
+  {
+    newWordStats.Sort((x, y) => x.SubmitCountRound1.CompareTo(y.SubmitCountRound1));
+    wordStats = newWordStats;  
+  }
+  
+
+  private void ServerAdminInfoGameSessions(List<GameSession> newGameSessions)
   {
     var sorted
       = newGameSessions
@@ -102,4 +172,11 @@
 
   // Blazor wasm is not aware of local time. Use javascript to correct this
   private DateTimeOffset GetBrowserLocalTime(DateTimeOffset dateTimeOffset) => new(dateTimeOffset.DateTime + offset, offset);
+
+  private String DateTimeOffsetFormat(DateTimeOffset dateTimeOffset)
+    => $"{dateTimeOffset.Year.ToString("D4")}-{dateTimeOffset.Month.ToString("D2")}-{dateTimeOffset.Day.ToString("D2")}"
+       + $" {dateTimeOffset.Hour.ToString("D2")}:{dateTimeOffset.Minute.ToString("D2")}:{dateTimeOffset.Second.ToString("D2")} {dateTimeOffset.Offset.Hours.ToString("D2")}:{dateTimeOffset.Offset.Minutes.ToString("D2")}";
+
+  private String TimeSpanPrintFormat(TimeSpan timeSpan)
+    => $"{timeSpan.Days.ToString("D2")}.{timeSpan.Hours.ToString("D2")}:{timeSpan.Minutes.ToString("D2")}:{timeSpan.Seconds.ToString("D2")}";
 }

@@ -3,3 +3,11 @@
   overflow-y: auto;
   height: 100%;
 }
+
+table td, table td * {
+  vertical-align: top;
+}
+
+.wordstat {
+  border: 1px dotted;
+}

@@ -214,7 +214,11 @@ public class WordleOffHub : Hub
   public async Task ClientAdminInfo(String adminKey)
   {
     if (adminKey == Environment.GetEnvironmentVariable("ADMIN_KEY"))
-      await Clients.Caller.SendAsync("ServerAdminInfo", await dbCtx.GameSessions.ToListAsync());
+    {
+      await Clients.Caller.SendAsync("SeverAdminInfoSessionStats", await dbCtx.SessionStats.ToListAsync());
+      await Clients.Caller.SendAsync("ServerAdminInfoWordStats", await dbCtx.WordStats.ToListAsync());
+      await Clients.Caller.SendAsync("ServerAdminInfoGameSessions", await dbCtx.GameSessions.ToListAsync());
+    }
   }
 
   #endregion
