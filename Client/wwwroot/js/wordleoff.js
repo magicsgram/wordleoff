@@ -29,3 +29,13 @@ window.reanimateAll = () => {
 window.setTitle = (title) => {
   document.title = title;
 };
+
+// From https://github.com/danroth27/BlazorExcelSpreadsheet
+window.saveAsFile = (filename, bytesBase64) => {
+  var link = document.createElement('a');
+  link.download = filename;
+  link.href = "data:application/octet-stream;base64," + bytesBase64;
+  document.body.appendChild(link); // Needed for Firefox
+  link.click();
+  document.body.removeChild(link);
+}

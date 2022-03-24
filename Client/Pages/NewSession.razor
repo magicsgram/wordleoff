@@ -90,6 +90,7 @@
   }
 
   public Boolean IsConnected => hubConnection?.State == HubConnectionState.Connected;
+
   private async Task OnClosed(Exception? e)
   {
     if (hubConnection is not null)
