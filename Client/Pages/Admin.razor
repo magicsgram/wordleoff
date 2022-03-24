@@ -155,7 +155,7 @@
 
   private void ServerAdminInfoWordStats(List<WordStat> newWordStats)
   {
-    newWordStats.Sort((x, y) => x.SubmitCountRound1.CompareTo(y.SubmitCountRound1));
+    newWordStats.Sort((x, y) => y.SubmitCountTotal.CompareTo(x.SubmitCountTotal));
     wordStats = newWordStats;  
   }
   
