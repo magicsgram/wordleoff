@@ -60,11 +60,11 @@ public class GameSession
 
     foreach (var pair in PlayerDataDictionary)
       pair.Value.PlayData.Clear();
+    if (GameStartedAt != DateTimeOffset.MaxValue)
+      TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
 
-    TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
-    ++TotalGamesPlayed;
     DateTimeOffset now = DateTimeOffset.UtcNow;
-    GameStartedAt = now;
+    GameStartedAt = DateTimeOffset.MinValue;
     UpdatedAt = now;
   }
 
@@ -116,10 +116,8 @@ public class GameSession
     };
     DateTimeOffset now = DateTimeOffset.UtcNow;
     if (PlayerDataDictionary.Count == 0)
-    {
-      GameStartedAt = now;
-      ++TotalGamesPlayed;
-    }
+      GameStartedAt = DateTimeOffset.MaxValue;
+
     PlayerDataDictionary.Add(newPlayerName, newPlayerData);
     UpdatedAt = now;
     ++TotalPlayersConnected;
@@ -178,8 +176,9 @@ public class GameSession
     if (PlayerDataDictionary.Count == 0 && playerNamesToRemove.Count > 0)
     {
       SetNewRandomAnswer();
-      TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
-      GameStartedAt = now;
+      if (GameStartedAt != DateTimeOffset.MaxValue)
+        TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
+      GameStartedAt = DateTimeOffset.MaxValue;
       UpdatedAt = now;
     }
     return playerNamesToRemove.Count > 0;
@@ -188,18 +187,25 @@ public class GameSession
   public void PrepForRemoval()
   { // There are still players connected. They'll get booted.
     if (PlayerDataDictionary.Count > 0)
-      TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
+      if (GameStartedAt != DateTimeOffset.MaxValue)
+        TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
   }
 
   public Int32 EnterGuess(String playerName, String word)
   {
-    UpdatedAt = DateTimeOffset.UtcNow;
+    var now = DateTimeOffset.UtcNow;
+    UpdatedAt = now;
 
     if (!PlayerDataDictionary.ContainsKey(playerName))
       return 0;
 
     if (PlayerDataDictionary[playerName].PlayData.Count >= 6)
       return 0;
+    if (PlayerDataDictionary.Count(x => x.Value.PlayData.Count > 0) == 0) // First play of the game
+    {
+      GameStartedAt = now;
+      ++TotalGamesPlayed;
+    }
     PlayerDataDictionary[playerName].PlayData.Add(word);
     PlayerDataDictionary[playerName].DisconnectedDateTime = null;
     return PlayerDataDictionary[playerName].PlayData.Count;

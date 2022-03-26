@@ -22,6 +22,9 @@
     <div>
       Game time per session: @(TimeSpan.FromSeconds(sessionStats.Find(x => x.Category == "TotalGameTimeSeconds")!.Count * 1.0f / sessionStats.Find(x => x.Category == "TotalSessionsCreated")!.Count))
     </div>
+    <div>
+      Game time per game: @(TimeSpan.FromSeconds(sessionStats.Find(x => x.Category == "TotalGameTimeSeconds")!.Count * 1.0f / sessionStats.Find(x => x.Category == "TotalGamesPlayed")!.Count))
+    </div>
   }
   <button class="button" @onclick="RequestWordStats" disabled="@(!IsConnected || wordStatsRequestedOnce)" tabindex="0">Download wordstats.csv (Can be requested only once)</button>
 
