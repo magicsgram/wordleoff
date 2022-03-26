@@ -64,7 +64,7 @@ public class GameSession
       TotalGameTimeSeconds += (Int32)Math.Round((UpdatedAt - GameStartedAt).TotalSeconds);
 
     DateTimeOffset now = DateTimeOffset.UtcNow;
-    GameStartedAt = DateTimeOffset.MinValue;
+    GameStartedAt = DateTimeOffset.MaxValue;
     UpdatedAt = now;
   }
 
