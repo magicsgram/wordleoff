@@ -2,6 +2,7 @@
 
 html, body {
   font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+  user-select: none;
 }
 
 h1:focus {

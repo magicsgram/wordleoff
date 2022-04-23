@@ -205,6 +205,7 @@ public class WordleOffHub : Hub
           }
           wordStat.WordSubmitted(placement);
           await SaveGameSessionToDbAsync(gameSession);
+          await SendCurrentAnswerAsync(gameSession);
           await SendFullGameStateAsync(gameSession);
         }
       }
