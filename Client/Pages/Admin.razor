@@ -70,7 +70,7 @@
         Total Players: @(gameSession.TotalGamesPlayed)
       </div>
       <div>
-        Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=on"))</a>
+        Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=allow"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=allow"))</a>
       </div>
       <div>
         Player names: @String.Join(" - ", gameSession.PlayerDataDictionary.OrderBy(x => x.Value.Index).Select(x => $"{x.Key} ({x.Value.PlayData.Count})").ToArray())

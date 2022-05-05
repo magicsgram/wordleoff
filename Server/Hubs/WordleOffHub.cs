@@ -152,7 +152,7 @@ public class WordleOffHub : Hub
     });
   }
 
-  public async Task ClientConnectAsSpectator(String sessionId)
+  public async Task ClientConnectAsSpectatorOrStreamer(String sessionId)
   {
     GameSession? gameSession = GetGameSession(sessionId);
     if (gameSession is null)
@@ -165,7 +165,7 @@ public class WordleOffHub : Hub
     await SendFullGameStateAsync(gameSession);
   }
 
-  public async Task ClientReconnect(String sessionId, String playerName, Boolean spectatorMode)
+  public async Task ClientReconnect(String sessionId, String playerName, Boolean spectatorOrStreamerMode)
   {
     await DBOpsAsync(async () =>
     {
@@ -175,7 +175,7 @@ public class WordleOffHub : Hub
         await SendJoinErrorAsync(ServerJoinError.SessionNotFound);
         return;
       }
-      if (!spectatorMode) // Check if Spectator
+      if (!spectatorOrStreamerMode) // Check if Spectator
         if (gameSession.ReconnectPlayer(playerName, Context.ConnectionId)) // Actual Player
         {
           await dbCtx.ConnectionIdToSessionIds.AddAsync(new(Context.ConnectionId, gameSession.SessionId));
