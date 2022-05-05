@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using WordleOff.Server.Hubs;
 using WordleOff.Shared.Games;
-using Blazored.Modal;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +11,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSignalR().AddMessagePackProtocol();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
-builder.Services.AddBlazoredModal();
 builder.Services.AddResponseCompression(opts =>
 {
   opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[] { "application/octet-stream" });
