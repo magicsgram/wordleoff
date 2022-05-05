@@ -88,7 +88,7 @@
   private String searchSessionMessage = "Searching....";
   private HubConnection? hubConnection;
   private Boolean canSubmitNewGuess;
-  private Boolean behindOthers = false;
+  private Boolean behindOrSameAsOthers = false;
   private Boolean alreadyGuessedCorrectly = false;
   private Boolean guessLimitReached = false;
   private Boolean spectatorMode = false;
@@ -545,9 +545,11 @@
 
   public void UpdateGameStates()
   {
-    behindOthers = false;
+    behindOrSameAsOthers = false;
     alreadyGuessedCorrectly = false;
     guessLimitReached = false;
+    Int32 playersStrictlyBehindCount = 0;
+    Boolean strictlyBehindOthers = false;
     Boolean keyExist = false;
 
     keyExist = playerDataDictionary.ContainsKey(playerName);
@@ -556,11 +558,18 @@
       if (playerDataDictionary[playerName].AnswerGuessedCorrectly(correctAnswer))
         alreadyGuessedCorrectly = true;
       Int32 myGuessCount = playerDataDictionary[playerName].PlayData.Count;
-      behindOthers = playerDataDictionary.Values.All((x) =>
+      behindOrSameAsOthers = playerDataDictionary.Values.All((x) =>
       {
         return x.AnswerGuessedCorrectly(correctAnswer)
           || x.PlayData.Count >= myGuessCount;
       });
+      strictlyBehindOthers = playerDataDictionary.Values.All((x) =>
+      {
+        return x.AnswerGuessedCorrectly(correctAnswer)
+          || x.Index == playerDataDictionary[playerName].Index
+          || x.PlayData.Count > myGuessCount;
+      });
+
       guessLimitReached = playerDataDictionary[playerName].PlayData.Count == 6;
     }
     if (correctAnswer is not null)
@@ -568,21 +577,25 @@
       maxGuessesAmongPlayers = playerDataDictionary.Values.Max(x => x.PlayData.Count);
       allPlayersAtMaxGuesses = playerDataDictionary.Values.All(x => x.PlayData.Count == maxGuessesAmongPlayers || x.AnswerGuessedCorrectly(correctAnswer));
       gameOver = playerDataDictionary.Values.All(x => x.PlayData.Count == 6 || x.AnswerGuessedCorrectly(correctAnswer));
+
+      playersStrictlyBehindCount = playerDataDictionary.Values.Count(x => x.PlayData.Count < maxGuessesAmongPlayers && !x.AnswerGuessedCorrectly(correctAnswer));
     }
 
-    if (!behindOthers && keyExist)
-      holdMessage = "Waiting for others to catch up";
+    if (!behindOrSameAsOthers && keyExist)
+      holdMessage = $"Wait for {playersStrictlyBehindCount} more player{(playersStrictlyBehindCount == 1 ? "" : "s")} to catch up";
     else if (alreadyGuessedCorrectly)
       holdMessage = $"{correctAnswer?.ToUpper()} is correct!{(playerDataDictionary.Count > 1 && !gameOver ? " Entering God Mode!" : "")}";
     else if ((!alreadyGuessedCorrectly && guessLimitReached) || spectatorMode)
       holdMessage = $"The answer is {correctAnswer?.ToUpper() ?? ""}";
+    else if (strictlyBehindOthers)
+      holdMessage = $"Others are waiting for you";
     else
       holdMessage = "";
-    canSubmitNewGuess = behindOthers && !alreadyGuessedCorrectly && !guessLimitReached;
+    canSubmitNewGuess = behindOrSameAsOthers && !alreadyGuessedCorrectly && !guessLimitReached;
     if (spectatorMode)
       godMode = true;
     else
-      godMode = playerDataDictionary.ContainsKey(playerName) ? (alreadyGuessedCorrectly && behindOthers) || gameOver : false;
+      godMode = playerDataDictionary.ContainsKey(playerName) ? (alreadyGuessedCorrectly && behindOrSameAsOthers) || gameOver : false;
   }
 
   private void PauseTableRerender()
