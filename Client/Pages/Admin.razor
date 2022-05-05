@@ -67,7 +67,7 @@
         Max players connected: @(gameSession.MaxPlayersConnected)
       </div>
       <div>
-        Total Players: @(gameSession.TotalGamesPlayed)
+        Total Games Played: @(gameSession.TotalGamesPlayed)
       </div>
       <div>
         Link: <a href=@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=allow"))>@(NavigationManager.ToAbsoluteUri($"game/{gameSession.SessionId}?spectator=allow"))</a>
