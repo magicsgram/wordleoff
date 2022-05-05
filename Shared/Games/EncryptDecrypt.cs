@@ -7,7 +7,7 @@ public class EncryptDecrypt
   private static Random random = new();
 
   // Very simple encryption/decryption to prevent very obvious browser inspector cheating
-  public static String XorEncrypt(String txt)
+  public static String XorEncryptPadding(String txt)
   {
     StringBuilder sb = new(txt.Length * 2);
     foreach (Char c in txt)
@@ -20,7 +20,7 @@ public class EncryptDecrypt
   }
 
   // Very simple encryption/decryption to prevent very obvious browser inspector cheating
-  public static String XorDecrypt(String txt)
+  public static String XorDecryptPadding(String txt)
   {
     StringBuilder sb = new(txt.Length / 2);
     for (Int32 i = 0; i < txt.Length; i += 2)
@@ -30,7 +30,7 @@ public class EncryptDecrypt
   }
 
   // Xor processing
-  private static String XorEncryptDecrypt(String txt)
+  public static String XorEncryptDecrypt(String txt)
   {
     StringBuilder sb = new(txt.Length);
     foreach (Char c in txt)

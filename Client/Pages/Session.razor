@@ -213,7 +213,7 @@
       foreach (PlayerData playerData in newPlayerDataDictionary.Values)
         for (Int32 i = 0; i < playerData.PlayData.Count; ++i)
           if (playerData.PlayData[i].Length > correctAnswer.Length)
-            playerData.PlayData[i] = EncryptDecrypt.XorDecrypt(playerData.PlayData[i]);
+            playerData.PlayData[i] = EncryptDecrypt.XorDecryptPadding(playerData.PlayData[i]);
 
     playerDataDictionary = newPlayerDataDictionary;
     UpdateGameStates();
@@ -377,7 +377,7 @@
       }
       if (canSubmitNewGuess)
       {
-        await hubConnection.SendAsync("ClientSubmitGuess", SessionId, playerName, EncryptDecrypt.XorEncrypt(guess.ToLower()));
+        await hubConnection.SendAsync("ClientSubmitGuess", SessionId, playerName, EncryptDecrypt.XorEncryptPadding(guess.ToLower()));
         guessTempForRender = guess;
         guess = "";
       }
@@ -397,7 +397,7 @@
       await hubConnection.SendAsync("ClientReconnect", SessionId, playerName, spectatorMode);
   }
 
-  public void UpdateCurrentAnswer(String newCorrectAnswer) => correctAnswer = EncryptDecrypt.XorDecrypt(newCorrectAnswer);
+  public void UpdateCurrentAnswer(String newCorrectAnswer) => correctAnswer = EncryptDecrypt.XorDecryptPadding(newCorrectAnswer);
 
   #endregion
 

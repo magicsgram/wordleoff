@@ -196,7 +196,7 @@ public class WordleOffHub : Hub
         Int32 placement = gameSession.EnterGuess(playerName, guess);
         if (placement > 0)
         {
-          String decryptedWord = EncryptDecrypt.XorDecrypt(guess);
+          String decryptedWord = EncryptDecrypt.XorDecryptPadding(guess);
           WordStat? wordStat = dbCtx.WordStats.Find(decryptedWord);
           if (wordStat is null)
           {
@@ -236,7 +236,7 @@ public class WordleOffHub : Hub
 
   public async Task SendCurrentAnswerAsync(GameSession gameSession, Boolean sendToWholeGroup = true)
   {
-    String encrypted = EncryptDecrypt.XorEncrypt(gameSession.CurrentAnswer);
+    String encrypted = EncryptDecrypt.XorEncryptPadding(gameSession.CurrentAnswer);
     if (sendToWholeGroup)
       await Clients.Group(gameSession.SessionId).SendAsync("ServerCurrentAnswer", encrypted);
     else
