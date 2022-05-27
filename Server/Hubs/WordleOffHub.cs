@@ -383,7 +383,7 @@ public class WordleOffHub : Hub
           SessionStat totalGameTimeSecondsStat = await RetrieveOrCreateSessionStatAsync(tempCtx, "TotalGameTimeSeconds");
           totalGameTimeSecondsStat.Count += totalGameTimeSeconds;
 
-          List<SessionStat> maxPlayerCountStatList = new(16);
+          List<SessionStat> maxPlayerCountStatList = new(GameSession.MaxPlayers + 1);
           for (Int32 i = 0; i <= GameSession.MaxPlayers; ++i)
             maxPlayerCountStatList.Add(await RetrieveOrCreateSessionStatAsync(tempCtx, $"MaxPlayerCount_{i}"));
           foreach (Int32 maxPlayerCount in maxPlayersList)
