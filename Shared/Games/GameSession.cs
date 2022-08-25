@@ -30,6 +30,7 @@ public class GameSession
   public Int32 TotalGamesPlayed { get; set; } = 0;
   public Int32 TotalPlayersConnected { get; set; } = 0;
   public Int32 MaxPlayersConnected { get; set; } = 0;
+  public String SpectatorKey { get; set; } = Guid.NewGuid().ToString().Substring(0, 8);
 
   public String CurrentAnswer { get { return PastAnswers.Last(); } }
   public Boolean SessionExpired

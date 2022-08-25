@@ -43,13 +43,22 @@
       <br />to start/join a new session
     </div>
     <hr />
-    <div style="font-size: 0.7rem">
-      Open the following link in a separate window for Streamer Mode
+    <div style=@($"display: {(showSpectatorLinkCopy ? "" : "none")};") class="div-center div-center-vertical">
+      <div style="font-size: 0.7rem">
+        Open the following link in a separate window for Streamer Mode
+      </div>
+      <div style="font-size: 0.7rem">
+        <a href=@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?streamer=on"))>@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?streamer=on"))</a>
+      </div>
+      <hr />
+      <div style="font-size: 0.7rem">
+        Click the button to copy a secret URL for Spectator Mode.
+      </div>
+      <div style="font-size: 0.7rem">
+        The button will NOT be available again once you leave this page.
+      </div>
+      <button style="font-size: 0.7rem" class="button" @onclick="CopySpectatorModeUrl" disabled="@(!IsConnected)">Copy Secret URL@(copySpectatorModeUrlMessage)</button>
     </div>
-    <div style="font-size: 0.7rem">
-      <a href=@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?streamer=on"))>@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?streamer=on"))</a>
-    </div>
-    
   </div>
 </div>
 <div class="screen">
@@ -111,11 +120,13 @@
   private HashSet<String> fullWords = new();
   private String? correctAnswer;
   private String copyIdMessage = "";
+  private String copySpectatorModeUrlMessage = "";
   private String boardZoomString = "";
   private String keyboardScaleString = "";
   private Int32 tableX = 0;
   private Int32 tableY = 0;
   private System.Timers.Timer? copyUrlTimer;
+  private System.Timers.Timer? copySpectatorModeUrlTimer;
   private System.Timers.Timer? invalidGuessTimer;
   private System.Timers.Timer? tableRerenderTimer;
   private System.Timers.Timer? tableRerenderReenablerTimer;
@@ -124,6 +135,9 @@
   private Stopwatch serverTimeStopWatch = new();
   private TimeSpan myComputerUtcTimeDiff = TimeSpan.Zero;
   private Boolean invalidGuessTriggerAnimation = false;
+  private Boolean showSpectatorLinkCopy = false;
+  private String spectatorModeLinkUrl = "";
+  private String spectatorKey = "";
   private Dictionary<String, PlayerData> playerDataDictionary = new();
   private Random random = new();
   private ElementReference gameDiv;
@@ -145,12 +159,35 @@
   {
     // Parse query params
     var uri = NavigationManager.ToAbsoluteUri(NavigationManager.Uri);
-    if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("spectator", out var spectator))
-      if (spectator == "allow")
-        spectatorMode = true;
     if (QueryHelpers.ParseQuery(uri.Query).TryGetValue("streamer", out var streamer))
       if (streamer == "on")
         streamerMode = true;
+
+    QueryHelpers.ParseQuery(uri.Query).TryGetValue("spectator", out var spectator);
+    if (spectator.ToString().Length > 0)
+    {
+      streamerMode = false;
+      spectatorMode = true;
+      spectatorKey = spectator;
+    }
+    else
+    {
+      if (await sessionStorage.ContainKeyAsync("wordleoff-sessionId-spectatorKey-expiration"))
+      {
+        String sessionId_spectatorKey_expiration = await sessionStorage.GetItemAsStringAsync("wordleoff-sessionId-spectatorKey-expiration");
+        await sessionStorage.RemoveItemAsync("wordleoff-sessionId-spectatorKey-expiration");
+        String[] parameters = sessionId_spectatorKey_expiration.Split(' ');
+        if (parameters.Length == 3)
+        {
+          String sessionId = parameters[0];
+          DateTime expiration = DateTime.FromBinary(Int64.Parse(parameters[2]));
+          if (sessionId == SessionId && DateTime.Now <= expiration)
+            spectatorKey = parameters[1];
+        }
+      }
+      if (spectatorKey.Length > 0)
+        streamerMode = false;
+    }
 
     BrowserResizeService.OnResize += HandleBrowserResizeAsync;
     await jsRuntime.InvokeVoidAsync("browserResize.registerResizeCallback");
@@ -178,11 +215,13 @@
       => UpdateCurrentAnswer(correctAnswer));
     hubConnection.On<ServerJoinError>("ServerJoinError", (error)
       => DisplayJoinErrorMessage(error));
-    hubConnection.On<Boolean, DateTimeOffset>("ServerSessionFindResult", (result, utcNow)
-      => HandleSessionFindResultAsync(result, utcNow));
+    //hubConnection.On<Boolean, DateTimeOffset>("ServerSessionFindResult", (result, utcNow)
+    //  => HandleSessionFindResultAsync(result, utcNow));
+    hubConnection.On<Boolean, Boolean, DateTimeOffset>("ServerSessionFindResult2", (result, spectatorKeyCorrect, utcNow)
+      => HandleSessionFindResultAsync2(result, spectatorKeyCorrect, utcNow));
 
     await hubConnection.StartAsync();
-    await hubConnection.InvokeAsync("ClientSearchSession", SessionId);
+    await hubConnection.InvokeAsync("ClientSearchSession2", SessionId, spectatorKey);
   }
 
   protected override async Task OnAfterRenderAsync(Boolean firstRender)
@@ -212,7 +251,8 @@
     if (!sessionInitialized)
     {
       sessionInitialized = true;
-      // Other session Initialization code goes here
+      if (spectatorMode || streamerMode)
+        StateHasChanged();
     }
     await sessionStorage.SetItemAsStringAsync("wordleoff-sessionId-playerName", $"{SessionId}:{playerName}");
 
@@ -234,12 +274,14 @@
     PauseTableRerender();
   }
 
-  public async Task HandleSessionFindResultAsync(Boolean result, DateTimeOffset utcNow)
+  public async Task HandleSessionFindResultAsync2(Boolean result, Boolean spectatorKeyCorrect, DateTimeOffset utcNow)
   {
     if (result)
     {
       if (hubConnection is not null)
       {
+        showSpectatorLinkCopy = spectatorKeyCorrect;
+        spectatorModeLinkUrl = NavigationManager.ToAbsoluteUri($"game/{SessionId}?spectator={spectatorKey}").AbsoluteUri;
         utcNowFromServerAfterSessionFound = utcNow;
         serverTimeStopWatch.Reset();
         serverTimeStopWatch.Start();
@@ -248,11 +290,11 @@
         tableRerenderTimer.Elapsed += async (sender, e) =>
         {
           await Task.Run(() =>
-    {
-      currentServerTimeEstimate = utcNowFromServerAfterSessionFound + serverTimeStopWatch.Elapsed;
-      if (playerDataDictionary is not null && playerDataDictionary.Any(x => x.Value.DisconnectedDateTime is not null))
-        StateHasChanged();
-    });
+          {
+            currentServerTimeEstimate = utcNowFromServerAfterSessionFound + serverTimeStopWatch.Elapsed;
+            if (playerDataDictionary is not null && playerDataDictionary.Any(x => x.Value.DisconnectedDateTime is not null))
+              StateHasChanged();
+          });
         };
         tableRerenderTimer.Start();
 
@@ -265,10 +307,21 @@
         copyUrlTimer.Elapsed += async (sender, e) =>
         {
           await Task.Run(() =>
-    {
-      copyIdMessage = "";
-      StateHasChanged();
-    });
+          {
+            copyIdMessage = "";
+            StateHasChanged();
+          });
+        };
+
+        copySpectatorModeUrlTimer = new(5000);
+        copySpectatorModeUrlTimer.AutoReset = false;
+        copySpectatorModeUrlTimer.Elapsed += async (sender, e) =>
+        {
+          await Task.Run(() =>
+          {
+            copySpectatorModeUrlMessage = "";
+            StateHasChanged();
+          });
         };
 
         invalidGuessTimer = new(400);
@@ -276,14 +329,14 @@
         invalidGuessTimer.Elapsed += async (sender, e) =>
         {
           await Task.Run(() =>
-    {
-      invalidGuessTriggerAnimation = false;
-      StateHasChanged();
-    });
+          {
+            invalidGuessTriggerAnimation = false;
+            StateHasChanged();
+          });
         };
 
         sessionFound = true;
-        if (spectatorMode || streamerMode)
+        if ((spectatorMode && spectatorKeyCorrect) || streamerMode)
         {
           restoringSession = true;
           await hubConnection.SendAsync("ClientConnectAsSpectatorOrStreamer", SessionId);
@@ -602,6 +655,15 @@
       godMode = playerDataDictionary.ContainsKey(playerName) ? (alreadyGuessedCorrectly && behindOrSameAsOthers) || gameOver : false;
   }
 
+  private async Task CopySpectatorModeUrl()
+  {
+    await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", spectatorModeLinkUrl);
+    copySpectatorModeUrlMessage = " (Copied!!!)";
+    copySpectatorModeUrlTimer?.Stop();
+    copySpectatorModeUrlTimer?.Start();
+  }
+    
+
   private void PauseTableRerender()
   {
     tableRerenderTimer?.Stop();
@@ -655,9 +717,9 @@
   {
     return __builder =>
     {
-      <div class="div-center">
-        <div class="title-logo-row">WORDLEOFF</div>
-      </div>
+  <div class="div-center">
+            <div class="title-logo-row">WORDLEOFF</div>
+  </div>
     };
   }
 
@@ -665,15 +727,15 @@
   {
     return __builder =>
     {
-      <div class="div-center div-center-vertical">
-        <div class="session-id-row" @onclick="CopyUrlToClipboardAsync">
-          @foreach (Char c in SessionId)
+  <div class="div-center div-center-vertical">
+            <div class="session-id-row" @onclick="CopyUrlToClipboardAsync">
+              @foreach (Char c in SessionId)
           {
-            <div class="guess-tile guess-tile-session-id guess-absent">@c</div>
+                <div class="guess-tile guess-tile-session-id guess-absent">@c</div>
           }
-        </div>
-        <div class="copy-id"><span>Click ID Above to Copy URL</span><span>@copyIdMessage</span></div>
-      </div>
+            </div>
+            <div class="copy-id"><span>Click ID Above to Copy URL</span><span>@copyIdMessage</span></div>
+  </div>
     };
   }
 
@@ -683,7 +745,7 @@
     {
       if (correctAnswer is null)
       {
-        <div></div>
+  <div></div>
       }
       else
       {
@@ -691,11 +753,11 @@
           return;
 
         Queue<KeyValuePair<String, PlayerData>> playerDataQueue = new(playerDataDictionary.OrderBy(x => x.Value.Index));
-        <table>
-          @for (Int32 j = 0; j < tableY; ++j)
+  <table>
+              @for (Int32 j = 0; j < tableY; ++j)
           {
-            <tr>
-              @for (Int32 i = 0; i < tableX; ++i)
+                <tr>
+                  @for (Int32 i = 0; i < tableX; ++i)
               {
                 if (playerDataQueue.Count > 0)
                 {
@@ -717,11 +779,11 @@
                     }
                   }
                   String borderClass = playerDataDictionary.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
-                  <td>
-                    <div class=@($"play-div {borderClass}")>
-                      <div>@($"{currentPlayerName}{youIndicator}{disconnectedPlayerMessage}")</div>
-                      <div class="guess-board">
-                        @for (Int32 x = 0; x < 6; ++x)
+                      <td>
+                        <div class=@($"play-div {borderClass}")>
+                          <div>@($"{currentPlayerName}{youIndicator}{disconnectedPlayerMessage}")</div>
+                          <div class="guess-board">
+                            @for (Int32 x = 0; x < 6; ++x)
                         {
                           List<Int32> colorList = new();
                           String currentGuess = "";
@@ -753,8 +815,8 @@
                             randomOrder = (new Int32[] { 1, 2, 3, 4, 5 }).OrderBy(x => random.NextInt64()).ToList();
                           }
 
-                          <div class="guess-row">
-                            @for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                              <div class="guess-row">
+                                @for (Int32 y = 0; y < correctAnswer.Length; ++y)
                             {
                               String classesString = "";
                               Char displayedLetter = ' ';
@@ -777,7 +839,7 @@
                                 {
                                   Boolean hideLetters = !isCurrentPlayerLocal && !godMode;
                                   String backgroundColorCSS = "";
-                                  @switch (colorList[y])
+                                      @switch (colorList[y])
                                   {
                                     case 0:
                                       backgroundColorCSS = $"guess-absent-{randomOrder[y]}";
@@ -816,18 +878,18 @@
                                 classesString = "guess-tile guess-empty";
                                 displayedLetter = ' ';
                               }
-                              <div class=@classesString>@displayedLetter</div>
+                                  <div class=@classesString>@displayedLetter</div>
                             }
-                          </div>
+                              </div>
                         }
-                      </div>
-                    </div>
-                  </td>
+                          </div>
+                        </div>
+                      </td>
                 }
               }
-            </tr>
+                </tr>
           }
-        </table>
+  </table>
       }
     };
   }
@@ -840,7 +902,7 @@
       {
         if (spectatorMode || streamerMode)
         {
-          <div></div>
+  <div></div>
         }
         else
         {
@@ -884,54 +946,54 @@
             );
           }
 
-          <div class="div-center">
-            <div class="keyboard-board">
-              <div class="div-center div-center-vertical" style=@keyboardScaleString>
-                <div class="keyboard-row">
-                  @RenderKeyboardChar(letterTileColors, 'q')
-                  @RenderKeyboardChar(letterTileColors, 'w')
-                  @RenderKeyboardChar(letterTileColors, 'e')
-                  @RenderKeyboardChar(letterTileColors, 'r')
-                  @RenderKeyboardChar(letterTileColors, 't')
-                  @RenderKeyboardChar(letterTileColors, 'y')
-                  @RenderKeyboardChar(letterTileColors, 'u')
-                  @RenderKeyboardChar(letterTileColors, 'i')
-                  @RenderKeyboardChar(letterTileColors, 'o')
-                  @RenderKeyboardChar(letterTileColors, 'p')
-                </div>
-                <div class="keyboard-row">
-                  <div class=@($"guess-tile guess-tiles-offset-50")></div>
-                  @RenderKeyboardChar(letterTileColors, 'a')
-                  @RenderKeyboardChar(letterTileColors, 's')
-                  @RenderKeyboardChar(letterTileColors, 'd')
-                  @RenderKeyboardChar(letterTileColors, 'f')
-                  @RenderKeyboardChar(letterTileColors, 'g')
-                  @RenderKeyboardChar(letterTileColors, 'h')
-                  @RenderKeyboardChar(letterTileColors, 'j')
-                  @RenderKeyboardChar(letterTileColors, 'k')
-                  @RenderKeyboardChar(letterTileColors, 'l')
-                  <div class=@($"guess-tile guess-tiles-offset-50")></div>
-                </div>
-                <div class="keyboard-row">
-                  <div class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
-               @onclick="@(e => HandleKeyAsync("Enter"))">
-                    Enter
+  <div class="div-center">
+                <div class="keyboard-board">
+                  <div class="div-center div-center-vertical" style=@keyboardScaleString>
+                    <div class="keyboard-row">
+                      @RenderKeyboardChar(letterTileColors, 'q')
+                      @RenderKeyboardChar(letterTileColors, 'w')
+                      @RenderKeyboardChar(letterTileColors, 'e')
+                      @RenderKeyboardChar(letterTileColors, 'r')
+                      @RenderKeyboardChar(letterTileColors, 't')
+                      @RenderKeyboardChar(letterTileColors, 'y')
+                      @RenderKeyboardChar(letterTileColors, 'u')
+                      @RenderKeyboardChar(letterTileColors, 'i')
+                      @RenderKeyboardChar(letterTileColors, 'o')
+                      @RenderKeyboardChar(letterTileColors, 'p')
+                    </div>
+                    <div class="keyboard-row">
+                      <div class=@($"guess-tile guess-tiles-offset-50")></div>
+                      @RenderKeyboardChar(letterTileColors, 'a')
+                      @RenderKeyboardChar(letterTileColors, 's')
+                      @RenderKeyboardChar(letterTileColors, 'd')
+                      @RenderKeyboardChar(letterTileColors, 'f')
+                      @RenderKeyboardChar(letterTileColors, 'g')
+                      @RenderKeyboardChar(letterTileColors, 'h')
+                      @RenderKeyboardChar(letterTileColors, 'j')
+                      @RenderKeyboardChar(letterTileColors, 'k')
+                      @RenderKeyboardChar(letterTileColors, 'l')
+                      <div class=@($"guess-tile guess-tiles-offset-50")></div>
+                    </div>
+                    <div class="keyboard-row">
+                      <div class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
+                   @onclick="@(e => HandleKeyAsync("Enter"))">
+                        Enter
+                      </div>
+                      @RenderKeyboardChar(letterTileColors, 'z')
+                      @RenderKeyboardChar(letterTileColors, 'x')
+                      @RenderKeyboardChar(letterTileColors, 'c')
+                      @RenderKeyboardChar(letterTileColors, 'v')
+                      @RenderKeyboardChar(letterTileColors, 'b')
+                      @RenderKeyboardChar(letterTileColors, 'n')
+                      @RenderKeyboardChar(letterTileColors, 'm')
+                      <div class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
+                   @onclick="@(e => HandleKeyAsync("Backspace"))">
+                        ⌫
+                      </div>
+                    </div>
                   </div>
-                  @RenderKeyboardChar(letterTileColors, 'z')
-                  @RenderKeyboardChar(letterTileColors, 'x')
-                  @RenderKeyboardChar(letterTileColors, 'c')
-                  @RenderKeyboardChar(letterTileColors, 'v')
-                  @RenderKeyboardChar(letterTileColors, 'b')
-                  @RenderKeyboardChar(letterTileColors, 'n')
-                  @RenderKeyboardChar(letterTileColors, 'm')
-                  <div class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
-               @onclick="@(e => HandleKeyAsync("Backspace"))">
-                    ⌫
-                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
+  </div>
         }
       }
     };
@@ -941,10 +1003,10 @@
   {
     return __builder =>
     {
-      <div class=@($"guess-tile guess-tile-keyboard {letterTileColors[renderChar]}")
-       @onclick="@(e => HandleKeyAsync(renderChar.ToString()))">
-        @renderChar
-      </div>
+  <div class=@($"guess-tile guess-tile-keyboard {letterTileColors[renderChar]}")
+           @onclick="@(e => HandleKeyAsync(renderChar.ToString()))">
+            @renderChar
+  </div>
     };
   }
 
@@ -952,28 +1014,28 @@
   {
     return __builder =>
     {
-      <div class="div-center">
-        <div class="last-row">
-          <div class="last-row-end-spacer">
-          </div>
-          @if (!spectatorMode && !streamerMode)
+  <div class="div-center">
+            <div class="last-row">
+              <div class="last-row-end-spacer">
+              </div>
+              @if (!spectatorMode && !streamerMode)
           {
-            <div class="div-center">
-              <div class="reset-row" @onclick="NewGameAsync">
-                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>R</div>
-                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
-                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>S</div>
-                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
-                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>T</div>
+                <div class="div-center">
+                  <div class="reset-row" @onclick="NewGameAsync">
+                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>R</div>
+                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
+                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>S</div>
+                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
+                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>T</div>
+                  </div>
+                </div>
+          }
+              <div class="last-row-end-spacer form-check form-switch">
+                <label class="form-check-label">HC</label>
+                <input class="form-check-input" type="checkbox" @bind="highContrastMode">
               </div>
             </div>
-          }
-          <div class="last-row-end-spacer form-check form-switch">
-            <label class="form-check-label">HC</label>
-            <input class="form-check-input" type="checkbox" @bind="highContrastMode">
-          </div>
-        </div>
-      </div>
+  </div>
     };
   }
 
