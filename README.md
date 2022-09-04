@@ -49,3 +49,7 @@ These were available in public for a while now, but there's a 'HC(High Contrast)
 4. Joining mid-session in progress
 
 You no longer have to wait until the current round is complete and reset in order to join the game. However, if you join in mid-session, you have to catch up w/ every else's guesses. (i.e. if people already made 3 guesses and you join the session, you have to submit 3 guesses first before they can submit their guesses again.)
+
+#### May 5th, 2022
+
+Adding Streamer Mode
