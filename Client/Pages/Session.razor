@@ -45,19 +45,21 @@
     <hr />
     <div style=@($"display: {(showSpectatorLinkCopy ? "" : "none")};") class="div-center div-center-vertical">
       <div style="font-size: 0.7rem">
-        Open the following link in a separate window for Streamer Mode
+        These links will NOT be available again once you leave this page.
       </div>
       <div style="font-size: 0.7rem">
-        <a href=@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?streamer=on"))>@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?streamer=on"))</a>
-      </div>
-      <hr />
-      <div style="font-size: 0.7rem">
-        Click the button to copy a secret URL for Spectator Mode.
+        Click
+        <a href=@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?streamer=on").AbsoluteUri) target="_blank">HERE</a>
+        to open Streamer Mode. (All guesses from everyone hidden until the game's over)
       </div>
       <div style="font-size: 0.7rem">
-        The button will NOT be available again once you leave this page.
+        Click
+        <a href=@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?spectator={spectatorKey}").AbsoluteUri) target="_blank">HERE</a>
+        to open Spectator Mode. (All guesses from everyone shown like God Mode.)
       </div>
-      <button style="font-size: 0.7rem" class="button" @onclick="CopySpectatorModeUrl" disabled="@(!IsConnected)">Copy Secret URL@(copySpectatorModeUrlMessage)</button>
+      <div style="font-size: 0.7rem">
+        Spectator Mode is a great page to show to the audience on a large display during WordleOff party.
+      </div>
     </div>
   </div>
 </div>
@@ -120,13 +122,11 @@
   private HashSet<String> fullWords = new();
   private String? correctAnswer;
   private String copyIdMessage = "";
-  private String copySpectatorModeUrlMessage = "";
   private String boardZoomString = "";
   private String keyboardScaleString = "";
   private Int32 tableX = 0;
   private Int32 tableY = 0;
   private System.Timers.Timer? copyUrlTimer;
-  private System.Timers.Timer? copySpectatorModeUrlTimer;
   private System.Timers.Timer? invalidGuessTimer;
   private System.Timers.Timer? tableRerenderTimer;
   private System.Timers.Timer? tableRerenderReenablerTimer;
@@ -136,7 +136,6 @@
   private TimeSpan myComputerUtcTimeDiff = TimeSpan.Zero;
   private Boolean invalidGuessTriggerAnimation = false;
   private Boolean showSpectatorLinkCopy = false;
-  private String spectatorModeLinkUrl = "";
   private String spectatorKey = "";
   private Dictionary<String, PlayerData> playerDataDictionary = new();
   private Random random = new();
@@ -215,13 +214,11 @@
       => UpdateCurrentAnswer(correctAnswer));
     hubConnection.On<ServerJoinError>("ServerJoinError", (error)
       => DisplayJoinErrorMessage(error));
-    //hubConnection.On<Boolean, DateTimeOffset>("ServerSessionFindResult", (result, utcNow)
-    //  => HandleSessionFindResultAsync(result, utcNow));
-    hubConnection.On<Boolean, Boolean, DateTimeOffset>("ServerSessionFindResult2", (result, spectatorKeyCorrect, utcNow)
-      => HandleSessionFindResultAsync2(result, spectatorKeyCorrect, utcNow));
+    hubConnection.On<Boolean, Boolean, DateTimeOffset>("ServerSessionFindResult", (result, spectatorKeyCorrect, utcNow)
+      => HandleSessionFindResultAsync(result, spectatorKeyCorrect, utcNow));
 
     await hubConnection.StartAsync();
-    await hubConnection.InvokeAsync("ClientSearchSession2", SessionId, spectatorKey);
+    await hubConnection.InvokeAsync("ClientSearchSession", SessionId, spectatorKey);
   }
 
   protected override async Task OnAfterRenderAsync(Boolean firstRender)
@@ -274,14 +271,13 @@
     PauseTableRerender();
   }
 
-  public async Task HandleSessionFindResultAsync2(Boolean result, Boolean spectatorKeyCorrect, DateTimeOffset utcNow)
+  public async Task HandleSessionFindResultAsync(Boolean result, Boolean spectatorKeyCorrect, DateTimeOffset utcNow)
   {
     if (result)
     {
       if (hubConnection is not null)
       {
         showSpectatorLinkCopy = spectatorKeyCorrect;
-        spectatorModeLinkUrl = NavigationManager.ToAbsoluteUri($"game/{SessionId}?spectator={spectatorKey}").AbsoluteUri;
         utcNowFromServerAfterSessionFound = utcNow;
         serverTimeStopWatch.Reset();
         serverTimeStopWatch.Start();
@@ -309,17 +305,6 @@
           await Task.Run(() =>
           {
             copyIdMessage = "";
-            StateHasChanged();
-          });
-        };
-
-        copySpectatorModeUrlTimer = new(5000);
-        copySpectatorModeUrlTimer.AutoReset = false;
-        copySpectatorModeUrlTimer.Elapsed += async (sender, e) =>
-        {
-          await Task.Run(() =>
-          {
-            copySpectatorModeUrlMessage = "";
             StateHasChanged();
           });
         };
@@ -655,15 +640,6 @@
       godMode = playerDataDictionary.ContainsKey(playerName) ? (alreadyGuessedCorrectly && behindOrSameAsOthers) || gameOver : false;
   }
 
-  private async Task CopySpectatorModeUrl()
-  {
-    await jsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", spectatorModeLinkUrl);
-    copySpectatorModeUrlMessage = " (Copied!!!)";
-    copySpectatorModeUrlTimer?.Stop();
-    copySpectatorModeUrlTimer?.Start();
-  }
-    
-
   private void PauseTableRerender()
   {
     tableRerenderTimer?.Stop();
@@ -745,151 +721,155 @@
     {
       if (correctAnswer is null)
       {
-  <div></div>
+        <div></div>
       }
       else
       {
         if (playerDataDictionary.Count == 0)
-          return;
-
-        Queue<KeyValuePair<String, PlayerData>> playerDataQueue = new(playerDataDictionary.OrderBy(x => x.Value.Index));
-  <table>
-              @for (Int32 j = 0; j < tableY; ++j)
-          {
-                <tr>
-                  @for (Int32 i = 0; i < tableX; ++i)
-              {
-                if (playerDataQueue.Count > 0)
+        {
+          <div>No player found.</div>
+        }
+        else
+        {
+          Queue<KeyValuePair<String, PlayerData>> playerDataQueue = new(playerDataDictionary.OrderBy(x => x.Value.Index));
+          <table>
+            @for (Int32 j = 0; j < tableY; ++j)
+            {
+              <tr>
+                @for (Int32 i = 0; i < tableX; ++i)
                 {
-                  var pairValue = playerDataQueue.Dequeue();
-                  var currentPlayerName = pairValue.Key;
-                  var currentPlayerData = pairValue.Value;
-                  Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
-                  String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
-                  String disconnectedPlayerMessage = "";
-                  if (currentPlayerData.DisconnectedDateTime is not null)
+                  if (playerDataQueue.Count > 0)
                   {
-                    TimeSpan disconnectedSince = (TimeSpan)(currentServerTimeEstimate - currentPlayerData.DisconnectedDateTime);
-                    if (disconnectedSince > TimeSpan.FromSeconds(5)) // Don't show if disconnected for less than 5 seconds.
+                    var pairValue = playerDataQueue.Dequeue();
+                    var currentPlayerName = pairValue.Key;
+                    var currentPlayerData = pairValue.Value;
+                    Boolean isCurrentPlayerLocal = playerName == currentPlayerName;
+                    String youIndicator = (playerName == currentPlayerName) ? " (You)" : "";
+                    String disconnectedPlayerMessage = "";
+                    if (currentPlayerData.DisconnectedDateTime is not null)
                     {
-                      TimeSpan timeLeft = TimeSpan.FromSeconds(CommonValues.ConnectionExpireSeconds) - disconnectedSince;
-                      if (timeLeft < TimeSpan.Zero)
-                        timeLeft = TimeSpan.Zero;
-                      disconnectedPlayerMessage = $" (Timeout: {(Int32)timeLeft.TotalSeconds} secs)";
+                      TimeSpan disconnectedSince = (TimeSpan)(currentServerTimeEstimate - currentPlayerData.DisconnectedDateTime);
+                      if (disconnectedSince > TimeSpan.FromSeconds(5)) // Don't show if disconnected for less than 5 seconds.
+                      {
+                        TimeSpan timeLeft = TimeSpan.FromSeconds(CommonValues.ConnectionExpireSeconds) - disconnectedSince;
+                        if (timeLeft < TimeSpan.Zero)
+                          timeLeft = TimeSpan.Zero;
+                        disconnectedPlayerMessage = $" (Timeout: {(Int32)timeLeft.TotalSeconds} secs)";
+                      }
                     }
-                  }
-                  String borderClass = playerDataDictionary.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
-                      <td>
-                        <div class=@($"play-div {borderClass}")>
-                          <div>@($"{currentPlayerName}{youIndicator}{disconnectedPlayerMessage}")</div>
-                          <div class="guess-board">
-                            @for (Int32 x = 0; x < 6; ++x)
-                        {
-                          List<Int32> colorList = new();
-                          String currentGuess = "";
-                          List<Int32> randomOrder = new();
-                          if (x < currentPlayerData.PlayData.Count)
+                    String borderClass = playerDataDictionary.Count > 1 && playerName == currentPlayerName ? "my-board" : "";
+                    <td>
+                      <div class=@($"play-div {borderClass}")>
+                        <div>@($"{currentPlayerName}{youIndicator}{disconnectedPlayerMessage}")</div>
+                        <div class="guess-board">
+                          @for (Int32 x = 0; x < 6; ++x)
                           {
-                            currentGuess = currentPlayerData.PlayData[x];
-                            Dictionary<Char, Int32> letterCountInAnswer = new();
-                            for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                            List<Int32> colorList = new();
+                            String currentGuess = "";
+                            List<Int32> randomOrder = new();
+                            if (x < currentPlayerData.PlayData.Count)
                             {
-                              colorList.Add(0);
-                              if (letterCountInAnswer.ContainsKey(correctAnswer[y]))
-                                ++letterCountInAnswer[correctAnswer[y]];
-                              else
-                                letterCountInAnswer.Add(correctAnswer[y], 1);
+                              currentGuess = currentPlayerData.PlayData[x];
+                              Dictionary<Char, Int32> letterCountInAnswer = new();
+                              for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                              {
+                                colorList.Add(0);
+                                if (letterCountInAnswer.ContainsKey(correctAnswer[y]))
+                                  ++letterCountInAnswer[correctAnswer[y]];
+                                else
+                                  letterCountInAnswer.Add(correctAnswer[y], 1);
+                              }
+                              for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                                if (currentGuess[y] == correctAnswer[y])
+                                {
+                                  colorList[y] = 2;
+                                  --letterCountInAnswer[currentGuess[y]];
+                                }
+                              for (Int32 y = 0; y < correctAnswer.Length; ++y)
+                                if (correctAnswer.Contains(currentGuess[y]) && letterCountInAnswer[currentGuess[y]] > 0 && colorList[y] < 1)
+                                {
+                                  colorList[y] = 1;
+                                  --letterCountInAnswer[currentGuess[y]];
+                                }
+                              randomOrder = (new Int32[] { 1, 2, 3, 4, 5 }).OrderBy(x => random.NextInt64()).ToList();
                             }
-                            for (Int32 y = 0; y < correctAnswer.Length; ++y)
-                              if (currentGuess[y] == correctAnswer[y])
-                              {
-                                colorList[y] = 2;
-                                --letterCountInAnswer[currentGuess[y]];
-                              }
-                            for (Int32 y = 0; y < correctAnswer.Length; ++y)
-                              if (correctAnswer.Contains(currentGuess[y]) && letterCountInAnswer[currentGuess[y]] > 0 && colorList[y] < 1)
-                              {
-                                colorList[y] = 1;
-                                --letterCountInAnswer[currentGuess[y]];
-                              }
-                            randomOrder = (new Int32[] { 1, 2, 3, 4, 5 }).OrderBy(x => random.NextInt64()).ToList();
-                          }
 
-                              <div class="guess-row">
-                                @for (Int32 y = 0; y < correctAnswer.Length; ++y)
-                            {
-                              String classesString = "";
-                              Char displayedLetter = ' ';
-                              if (x < currentPlayerData.PlayData.Count) // Guess rows
+                            <div class="guess-row">
+                              @for (Int32 y = 0; y < correctAnswer.Length; ++y)
                               {
-                                if (x == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses) // Temp guess row
+                                String classesString = "";
+                                Char displayedLetter = ' ';
+                                if (x < currentPlayerData.PlayData.Count) // Guess rows
                                 {
-                                  if (playerName == currentPlayerName)
+                                  if (x == maxGuessesAmongPlayers - 1 && !allPlayersAtMaxGuesses) // Temp guess row
                                   {
-                                    classesString = "guess-tile guess-guessing-mine";
-                                    displayedLetter = currentGuess[y];
+                                    if (playerName == currentPlayerName)
+                                    {
+                                      classesString = "guess-tile guess-guessing-mine";
+                                      displayedLetter = currentGuess[y];
+                                    }
+                                    else
+                                    {
+                                      classesString = "guess-tile guess-guessing";
+                                      displayedLetter = godMode ? currentGuess[y] : '?';
+                                    }
                                   }
-                                  else
+                                  else // Regular guess row
                                   {
-                                    classesString = "guess-tile guess-guessing";
-                                    displayedLetter = godMode ? currentGuess[y] : '?';
+                                    Boolean hideLetters = !isCurrentPlayerLocal && !godMode;
+                                    String backgroundColorCSS = "";
+                                    @switch (colorList[y])
+                                    {
+                                      case 0:
+                                        backgroundColorCSS = $"guess-absent-{randomOrder[y]}";
+                                        break;
+                                      case 1:
+                                        backgroundColorCSS = $"{GuessPresentClassString}-{randomOrder[y]}";
+                                        break;
+                                      case 2:
+                                        backgroundColorCSS = $"{GuessCorrectClassString}-{randomOrder[y]}";
+                                        break;
+                                    }
+                                    classesString = $"guess-tile {backgroundColorCSS}";
+                                    displayedLetter = hideLetters ? '?' : currentGuess[y];
                                   }
                                 }
-                                else // Regular guess row
+                                else if (x == currentPlayerData.PlayData.Count && x < 6 && isCurrentPlayerLocal) // Player's guessing row
                                 {
-                                  Boolean hideLetters = !isCurrentPlayerLocal && !godMode;
-                                  String backgroundColorCSS = "";
-                                      @switch (colorList[y])
+                                  if (guessTempForRender.Length == correctAnswer.Length)
                                   {
-                                    case 0:
-                                      backgroundColorCSS = $"guess-absent-{randomOrder[y]}";
-                                      break;
-                                    case 1:
-                                      backgroundColorCSS = $"{GuessPresentClassString}-{randomOrder[y]}";
-                                      break;
-                                    case 2:
-                                      backgroundColorCSS = $"{GuessCorrectClassString}-{randomOrder[y]}";
-                                      break;
+                                    classesString = $"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}";
+                                    displayedLetter = guessTempForRender[y];
                                   }
-                                  classesString = $"guess-tile {backgroundColorCSS}";
-                                  displayedLetter = hideLetters ? '?' : currentGuess[y];
+                                  else if (y < guess.Length) // Letters entered
+                                  {
+                                    classesString = $"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}";
+                                    displayedLetter = guess[y];
+                                  }
+                                  else // Empty tiles
+                                  {
+                                    classesString = "guess-tile guess-empty";
+                                    displayedLetter = ' ';
+                                  }
                                 }
-                              }
-                              else if (x == currentPlayerData.PlayData.Count && x < 6 && isCurrentPlayerLocal) // Player's guessing row
-                              {
-                                if (guessTempForRender.Length == correctAnswer.Length)
-                                {
-                                  classesString = $"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}";
-                                  displayedLetter = guessTempForRender[y];
-                                }
-                                else if (y < guess.Length) // Letters entered
-                                {
-                                  classesString = $"guess-tile guess-guessing-solid {(invalidGuessTriggerAnimation ? "guess-invalid" : "")}";
-                                  displayedLetter = guess[y];
-                                }
-                                else // Empty tiles
+                                else // Empty row
                                 {
                                   classesString = "guess-tile guess-empty";
                                   displayedLetter = ' ';
                                 }
+                                <div class=@classesString>@displayedLetter</div>
                               }
-                              else // Empty row
-                              {
-                                classesString = "guess-tile guess-empty";
-                                displayedLetter = ' ';
-                              }
-                                  <div class=@classesString>@displayedLetter</div>
-                            }
-                              </div>
-                        }
-                          </div>
+                            </div>
+                          }
                         </div>
-                      </td>
+                      </div>
+                    </td>
+                  }
                 }
-              }
-                </tr>
-          }
-  </table>
+              </tr>
+            }
+          </table>
+        }
       }
     };
   }

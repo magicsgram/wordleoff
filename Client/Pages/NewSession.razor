@@ -55,8 +55,8 @@
       .AddMessagePackProtocol()
       .Build();
     hubConnection.Closed += async (e) => await OnClosed(e);
-    //hubConnection.On<String>("NewSessionCreated", (newSessionId) => NavigationManager.NavigateTo($"game/{newSessionId}"));
-    hubConnection.On<String, String>("NewSessionCreated2", async (newSessionId, spectatorKey) => 
+    
+    hubConnection.On<String, String>("NewSessionCreated", async (newSessionId, spectatorKey) =>
     {
       await sessionStorage.SetItemAsStringAsync("wordleoff-sessionId-spectatorKey-expiration", $"{newSessionId} {spectatorKey} {DateTime.Now.AddSeconds(10).ToBinary().ToString()}");
       NavigationManager.NavigateTo($"game/{newSessionId}");

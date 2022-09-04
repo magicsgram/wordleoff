@@ -68,7 +68,7 @@ public class WordleOffHub : Hub
       SessionStat stat = await RetrieveOrCreateSessionStatAsync(dbCtx, "TotalSessionsCreated");
       ++stat.Count;
       await SaveGameSessionToDbAsync();
-      await Clients.Caller.SendAsync("NewSessionCreated", newGameSession.SessionId);
+      await Clients.Caller.SendAsync("NewSessionCreated", newGameSession.SessionId, newGameSession.SpectatorKey);
       await Clients.Caller.SendAsync("NewSessionCreated2", newGameSession.SessionId, newGameSession.SpectatorKey);
     });
   }
@@ -92,8 +92,14 @@ public class WordleOffHub : Hub
     });
   }
 
-  public async Task ClientSearchSession(String sessionId)
-    => await Clients.Caller.SendAsync("ServerSessionFindResult", GameSessionExist(sessionId), DateTimeOffset.UtcNow);
+  public async Task ClientSearchSession(String sessionId, String spectatorKey)
+  {
+    GameSession? gameSession = GetGameSession(sessionId);
+    if (gameSession is not null)
+      await Clients.Caller.SendAsync("ServerSessionFindResult", true, gameSession.SpectatorKey == spectatorKey, DateTimeOffset.UtcNow);
+    else
+      await Clients.Caller.SendAsync("ServerSessionFindResult", false, false, DateTimeOffset.UtcNow);
+  }
 
   public async Task ClientSearchSession2(String sessionId, String spectatorKey)
   {
