@@ -53,3 +53,7 @@ You no longer have to wait until the current round is complete and reset in orde
 #### May 5th, 2022
 
 Adding Streamer Mode
+
+#### Aug 25th, 2022
+
+Adding Spectator Mode
