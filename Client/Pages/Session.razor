@@ -27,6 +27,7 @@
     <div>
       @RenderTitleLogo()
       @RenderSessionId()
+      @RenderSessionConnectionStatus()
     </div>
     <div style="height: 20px;"></div>
     <div style=@($"display: {(restoringSession ? "none" : "")};")>
@@ -72,6 +73,7 @@
     <div>
       @RenderTitleLogo()
       @RenderSessionId()
+      @RenderSessionConnectionStatus()
     </div>
     <div class="div-center player-data" style=@boardZoomString>
       @RenderPlayerDataTable()
@@ -693,9 +695,9 @@
   {
     return __builder =>
     {
-  <div class="div-center">
-            <div class="title-logo-row">WORDLEOFF</div>
-  </div>
+      <div class="div-center">
+        <div class="title-logo-row">WORDLEOFF</div>
+      </div>
     };
   }
 
@@ -703,15 +705,26 @@
   {
     return __builder =>
     {
-  <div class="div-center div-center-vertical">
-            <div class="session-id-row" @onclick="CopyUrlToClipboardAsync">
-              @foreach (Char c in SessionId)
+      <div class="div-center div-center-vertical">
+        <div class="session-id-row" @onclick="CopyUrlToClipboardAsync">
+          @foreach (Char c in SessionId)
           {
-                <div class="guess-tile guess-tile-session-id guess-absent">@c</div>
+            <div class="guess-tile guess-tile-session-id guess-absent">@c</div>
           }
-            </div>
-            <div class="copy-id"><span>Click ID Above to Copy URL</span><span>@copyIdMessage</span></div>
-  </div>
+        </div>
+        <div class="copy-id"><span>Click ID Above to Copy URL</span><span>@copyIdMessage</span></div>
+      </div>
+    };
+  }
+
+  private RenderFragment RenderSessionConnectionStatus()
+  {
+    return __builder =>
+    {
+      <div class="div-center div-center-vertical">
+        <div style="font-size: 0.5rem">
+        </div>
+      </div>
     };
   }
 
@@ -882,7 +895,7 @@
       {
         if (spectatorMode || streamerMode)
         {
-  <div></div>
+          <div></div>
         }
         else
         {
@@ -926,54 +939,54 @@
             );
           }
 
-  <div class="div-center">
-                <div class="keyboard-board">
-                  <div class="div-center div-center-vertical" style=@keyboardScaleString>
-                    <div class="keyboard-row">
-                      @RenderKeyboardChar(letterTileColors, 'q')
-                      @RenderKeyboardChar(letterTileColors, 'w')
-                      @RenderKeyboardChar(letterTileColors, 'e')
-                      @RenderKeyboardChar(letterTileColors, 'r')
-                      @RenderKeyboardChar(letterTileColors, 't')
-                      @RenderKeyboardChar(letterTileColors, 'y')
-                      @RenderKeyboardChar(letterTileColors, 'u')
-                      @RenderKeyboardChar(letterTileColors, 'i')
-                      @RenderKeyboardChar(letterTileColors, 'o')
-                      @RenderKeyboardChar(letterTileColors, 'p')
-                    </div>
-                    <div class="keyboard-row">
-                      <div class=@($"guess-tile guess-tiles-offset-50")></div>
-                      @RenderKeyboardChar(letterTileColors, 'a')
-                      @RenderKeyboardChar(letterTileColors, 's')
-                      @RenderKeyboardChar(letterTileColors, 'd')
-                      @RenderKeyboardChar(letterTileColors, 'f')
-                      @RenderKeyboardChar(letterTileColors, 'g')
-                      @RenderKeyboardChar(letterTileColors, 'h')
-                      @RenderKeyboardChar(letterTileColors, 'j')
-                      @RenderKeyboardChar(letterTileColors, 'k')
-                      @RenderKeyboardChar(letterTileColors, 'l')
-                      <div class=@($"guess-tile guess-tiles-offset-50")></div>
-                    </div>
-                    <div class="keyboard-row">
-                      <div class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
-                   @onclick="@(e => HandleKeyAsync("Enter"))">
-                        Enter
-                      </div>
-                      @RenderKeyboardChar(letterTileColors, 'z')
-                      @RenderKeyboardChar(letterTileColors, 'x')
-                      @RenderKeyboardChar(letterTileColors, 'c')
-                      @RenderKeyboardChar(letterTileColors, 'v')
-                      @RenderKeyboardChar(letterTileColors, 'b')
-                      @RenderKeyboardChar(letterTileColors, 'n')
-                      @RenderKeyboardChar(letterTileColors, 'm')
-                      <div class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
-                   @onclick="@(e => HandleKeyAsync("Backspace"))">
-                        ⌫
-                      </div>
-                    </div>
+          <div class="div-center">
+            <div class="keyboard-board">
+              <div class="div-center div-center-vertical" style=@keyboardScaleString>
+                <div class="keyboard-row">
+                  @RenderKeyboardChar(letterTileColors, 'q')
+                  @RenderKeyboardChar(letterTileColors, 'w')
+                  @RenderKeyboardChar(letterTileColors, 'e')
+                  @RenderKeyboardChar(letterTileColors, 'r')
+                  @RenderKeyboardChar(letterTileColors, 't')
+                  @RenderKeyboardChar(letterTileColors, 'y')
+                  @RenderKeyboardChar(letterTileColors, 'u')
+                  @RenderKeyboardChar(letterTileColors, 'i')
+                  @RenderKeyboardChar(letterTileColors, 'o')
+                  @RenderKeyboardChar(letterTileColors, 'p')
+                </div>
+                <div class="keyboard-row">
+                  <div class=@($"guess-tile guess-tiles-offset-50")></div>
+                  @RenderKeyboardChar(letterTileColors, 'a')
+                  @RenderKeyboardChar(letterTileColors, 's')
+                  @RenderKeyboardChar(letterTileColors, 'd')
+                  @RenderKeyboardChar(letterTileColors, 'f')
+                  @RenderKeyboardChar(letterTileColors, 'g')
+                  @RenderKeyboardChar(letterTileColors, 'h')
+                  @RenderKeyboardChar(letterTileColors, 'j')
+                  @RenderKeyboardChar(letterTileColors, 'k')
+                  @RenderKeyboardChar(letterTileColors, 'l')
+                  <div class=@($"guess-tile guess-tiles-offset-50")></div>
+                </div>
+                <div class="keyboard-row">
+                  <div class=@($"guess-tile guess-tile-keyboard-small guess-tiles-offset-150 guess-guessing")
+               @onclick="@(e => HandleKeyAsync("Enter"))">
+                    Enter
+                  </div>
+                  @RenderKeyboardChar(letterTileColors, 'z')
+                  @RenderKeyboardChar(letterTileColors, 'x')
+                  @RenderKeyboardChar(letterTileColors, 'c')
+                  @RenderKeyboardChar(letterTileColors, 'v')
+                  @RenderKeyboardChar(letterTileColors, 'b')
+                  @RenderKeyboardChar(letterTileColors, 'n')
+                  @RenderKeyboardChar(letterTileColors, 'm')
+                  <div class=@($"guess-tile guess-tile-keyboard guess-tiles-offset-150 guess-guessing")
+               @onclick="@(e => HandleKeyAsync("Backspace"))">
+                    ⌫
                   </div>
                 </div>
-  </div>
+              </div>
+            </div>
+          </div>
         }
       }
     };
@@ -983,10 +996,10 @@
   {
     return __builder =>
     {
-  <div class=@($"guess-tile guess-tile-keyboard {letterTileColors[renderChar]}")
-           @onclick="@(e => HandleKeyAsync(renderChar.ToString()))">
-            @renderChar
-  </div>
+      <div class=@($"guess-tile guess-tile-keyboard {letterTileColors[renderChar]}")
+       @onclick="@(e => HandleKeyAsync(renderChar.ToString()))">
+        @renderChar
+      </div>
     };
   }
 
@@ -994,28 +1007,28 @@
   {
     return __builder =>
     {
-  <div class="div-center">
-            <div class="last-row">
-              <div class="last-row-end-spacer">
-              </div>
-              @if (!spectatorMode && !streamerMode)
+      <div class="div-center">
+        <div class="last-row">
+          <div class="last-row-end-spacer">
+          </div>
+          @if (!spectatorMode && !streamerMode)
           {
-                <div class="div-center">
-                  <div class="reset-row" @onclick="NewGameAsync">
-                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>R</div>
-                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
-                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>S</div>
-                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
-                    <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>T</div>
-                  </div>
-                </div>
-          }
-              <div class="last-row-end-spacer form-check form-switch">
-                <label class="form-check-label">HC</label>
-                <input class="form-check-input" type="checkbox" @bind="highContrastMode">
+            <div class="div-center">
+              <div class="reset-row" @onclick="NewGameAsync">
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>R</div>
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>S</div>
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>E</div>
+                <div class=@($"guess-tile guess-tile-small {@ResetButtonClass}")>T</div>
               </div>
             </div>
-  </div>
+          }
+          <div class="last-row-end-spacer form-check form-switch">
+            <label class="form-check-label">HC</label>
+            <input class="form-check-input" type="checkbox" @bind="highContrastMode">
+          </div>
+        </div>
+      </div>
     };
   }
 
