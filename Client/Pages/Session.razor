@@ -571,7 +571,7 @@
     copyUrlTimer?.Start();
   }
 
-  public async Task NavigateToDictionaryDotComAsync() => await jsRuntime.InvokeAsync<Object>("open", $"https://www.dictionary.com/browse/{correctAnswer}", "_blank");
+  public async Task NavigateToDictionaryDotComAsync() => await jsRuntime.InvokeVoidAsync("open", $"https://www.dictionary.com/browse/{correctAnswer}", "_blank");
 
   public void NavigateToNewGameScreen() => NavigationManager.NavigateTo("/");
 

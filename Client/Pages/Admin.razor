@@ -167,7 +167,7 @@
 
   public async Task SaveAsAsync(String filename, Byte[] data)
   {
-      await jsRuntime.InvokeAsync<object>(
+      await jsRuntime.InvokeVoidAsync(
           "saveAsFile",
           filename,
           Convert.ToBase64String(data));
