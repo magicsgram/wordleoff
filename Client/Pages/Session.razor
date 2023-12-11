@@ -46,20 +46,20 @@
     <hr />
     <div style=@($"display: {(showSpectatorLinkCopy ? "" : "none")};") class="div-center div-center-vertical">
       <div style="font-size: 0.7rem">
-        These links will NOT be available again once you leave this page.
+        These links will NOT be shown again once you leave this page.
       </div>
       <div style="font-size: 0.7rem">
         Click
         <a href=@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?streamer=on").AbsoluteUri) target="_blank">HERE</a>
-        to open Streamer Mode. (All guesses from everyone hidden until the game's over)
+        to open Streamer mode. (All guesses from everyone are hidden until the game's over.)
       </div>
       <div style="font-size: 0.7rem">
         Click
         <a href=@(NavigationManager.ToAbsoluteUri($"game/{SessionId}?spectator={spectatorKey}").AbsoluteUri) target="_blank">HERE</a>
-        to open Spectator Mode. (All guesses from everyone shown like God Mode.)
+        to open Spectator mode. (All guesses from everyone are shown like God Mode.)
       </div>
       <div style="font-size: 0.7rem">
-        Spectator Mode is a great page to show to the audience on a large display during WordleOff party.
+        Spectator mode is a great page to show the audience on a large display during a Wordleoff party.
       </div>
     </div>
     <div style="height: 25px;"></div>
