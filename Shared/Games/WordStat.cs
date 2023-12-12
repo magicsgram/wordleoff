@@ -5,6 +5,8 @@ public class WordStat
 {
   [Key]
   public String Word { get; set; } = "";
+  [Timestamp]
+  public UInt32 Version { get; set; }
   public UInt64 SubmitCountTotal { get; set; } = 0;
   public UInt64 SubmitCountRound1 { get; set; } = 0;
   public UInt64 SubmitCountRound2 { get; set; } = 0;

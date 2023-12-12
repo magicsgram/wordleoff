@@ -32,8 +32,8 @@ public class WordleOffContext : DbContext
      )
      .HasColumnType("jsonb");
 
-    modelBuilder.Entity<GameSession>()
-      .UseXminAsConcurrencyToken();
+    // modelBuilder.Entity<GameSession>()
+    //   .UseXminAsConcurrencyToken();
 
     modelBuilder.Entity<GameSession>()
       .HasIndex(x => x.SessionId);
@@ -43,24 +43,24 @@ public class WordleOffContext : DbContext
       .HasIndex(x => x.ConnectionId)
       .IsUnique();
 
-    modelBuilder.Entity<ConnectionIdToSessionId>()
-      .UseXminAsConcurrencyToken();
+    // modelBuilder.Entity<ConnectionIdToSessionId>()
+    //   .UseXminAsConcurrencyToken();
 
     // WordStats related
     modelBuilder.Entity<WordStat>()
       .HasIndex(x => x.Word)
       .IsUnique();
 
-    modelBuilder.Entity<WordStat>()
-      .UseXminAsConcurrencyToken();
+    // modelBuilder.Entity<WordStat>()
+    //   .UseXminAsConcurrencyToken();
 
     // SessionStats related
     modelBuilder.Entity<SessionStat>()
       .HasIndex(x => x.Category)
       .IsUnique();
 
-    modelBuilder.Entity<SessionStat>()
-      .UseXminAsConcurrencyToken();
+    // modelBuilder.Entity<SessionStat>()
+    //   .UseXminAsConcurrencyToken();
   }
 
   protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -77,9 +77,7 @@ public class WordleOffContext : DbContext
       Password = userInfoPart[1],
       Host = uri.Host,
       Port = uri.Port,
-      Database = uri.LocalPath.TrimStart('/'),
-      SslMode = Npgsql.SslMode.Require,
-      TrustServerCertificate = true
+      Database = uri.LocalPath.TrimStart('/')
     };
     String connectionString = builder.ToString();
     optionsBuilder.UseNpgsql(connectionString);
