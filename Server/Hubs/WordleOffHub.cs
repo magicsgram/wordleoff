@@ -259,11 +259,6 @@ public class WordleOffHub : Hub
 
   public async Task SendJoinErrorAsync(ServerJoinError error) => await Clients.Caller.SendAsync("ServerJoinError", error);
 
-  public async Task SendSessionConnection(GameSession gameSession)
-  {
-    
-  }
-
   #endregion
 
 

@@ -14,6 +14,9 @@ public enum AddPlayerResult
 
 public class GameSession
 {
+  [Timestamp]
+  public UInt32 Version { get; set; }
+
   public const Int32 MaxPlayers = 30;
   private const Int32 GameSessionExpireMinutes = 60;
   private const Int32 PastAnswersMaxSize = 200;
