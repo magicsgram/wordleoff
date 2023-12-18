@@ -1,4 +1,4 @@
-**I intend to keep this free and ad-free (and open source) as long as my time and budget allow to maintain the server. It's running on a low-tier server, So I apologize for any service interruptions.**
+**This project will be completely free of ads and open source as long as I can maintain it. Please note that it's running on limited resources, so if you encounter any service interruptions, simply refresh the page or try again later. Thank you for your understanding!**
 ***
 
 WORDLEOFF is a project hosted on
@@ -12,26 +12,26 @@ Unlike some other Wordle variants you see online, this is NOT a 'race to the ans
 
 All players must submit their guesses before you can submit another one, keeping everyone on the same pace and no one gets too far too fast. So yes, you can play this w/ your grandparent too. I wanted to focus more on the social mechanics, not how speedy you are at guessing answers.
 
-Get on Discord/Zoom/Skype/Google Meets w/ your friends and family and invite them by sending them a link to your session (you can share a link by clicking on the session ID on top)
+Gather your friends and family on Discord, Zoom, Skype, or Google Meets! Send them a link to your session by clicking the session ID at the top.
 - Everyone has to submit a guess until you can move on to a next guess. Pressure your peers to hurry up :)
 - Once you get the answer, you enter a 'God Mode' and get to see everyone else's guess. Tell them you can see their guesses and give them even more pressure :) :)
-- Up to 16 people can join a session simultaneously. Although possible, I do not recommend playing this on mobile if you have more than 4 people.
+- Up to 30 people can join a session simultaneously, but mobile gameplay is best for groups of 4 or less.
 - Once the game is over (either everyone got the answer or failed), you'll be prompted a link to see the definition on dictionary.com . I had to add this link because I got so frustrated w/ some answers on Wordle in the past couple weeks.
 
 Enjoy and let me know if you have any questions, feedbacks, etc.
 
 ***Some thoughts if you ever played a game called 'Among Us'.***
 
-I freaking love the voting mechanics in 'Among Us', as there's so much tension and pressure to 'vote' on Imposters. Also, after the imposters kill you and you know who they are, it gets even more interesting because you get to spectate how other people struggle in search of them.
+I absolutely adore the voting dynamics in "Among Us!" The suspense and pressure to identify the Imposters makes for incredibly thrilling gameplay. Even after being eliminated, watching the crewmates navigate the hunt adds another layer of intrigue.
 
-WORDLEOFF is loosely around this idea and it's much more fun if you're on voice chats w/ your peers.
+WORDLEOFF takes inspiration from this concept, but with a twist! Playing with friends on voice chat amps up the excitement tenfold, creating a truly unique social experience.
 
 
 ***
 Changelog
 
 #### Feb 17th, 2022
-My current top priority is to save all sessions into database, so that you can play the game when the server experience short outage and come back alive. (and when you lose your connection to the internet and reconnect). I originally intended this to be a proof-of-concept. So, I just saved everything onto memory. But since people showed their love, I'm gonna build a db integration, so that you don't lose your progress anymore. Your session will still be destroyed if there's no activities for X amount of time (I think 1 hour?). I'll let you know when it's released. Thank you all for your support.
+My top priority right now is to save all game sessions to a database. This means you won't lose your progress even if the server has a short outage or you disconnect and reconnect to the internet. I know I originally planned this as a simple proof-of-concept, storing everything in memory, but thanks to all your amazing support, I'm taking it a step further with database integration. Remember, sessions will still be inactive after X amount of time (probably around 1 hour) with no activity. I'll let you know the exact timing when the feature is released. Thank you again for your support! It's your love for the game that motivates me to keep improving it.
 
 #### Feb 28th, 2022
 1. Restoring connection
@@ -44,11 +44,11 @@ When the server experience short downtime(the server gets rebooted as least once
 
 3. High contrast mode and tile animations
 
-These were available in public for a while now, but there's a 'HC(High Contrast)' switch at bottom-right corner, and the tiles show various animations.
+We've had some hidden features waiting for you to discover! Check out the High Contrast(HC) mode switch in the bottom right corner for a more accessible reading experience. Plus, don't miss the fun tile animations that add a touch of magic to your gameplay.
 
 4. Joining mid-session in progress
 
-You no longer have to wait until the current round is complete and reset in order to join the game. However, if you join in mid-session, you have to catch up w/ every else's guesses. (i.e. if people already made 3 guesses and you join the session, you have to submit 3 guesses first before they can submit their guesses again.)
+No need to wait for a new round anymore! You can jump into the fun anytime. Just be aware that if you join an ongoing session, you'll need to catch up with everyone else's guesses before they can make their next move. So, if they've already guessed 3 times, you'll need to submit 3 guesses of your own first. Think of it as warming up before joining the wordplay race!
 
 #### May 5th, 2022
 
