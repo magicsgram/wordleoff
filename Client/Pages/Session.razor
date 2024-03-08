@@ -62,8 +62,6 @@
         Spectator mode is a great page to show the audience on a large display during a Wordleoff party.
       </div>
     </div>
-    <div style="height: 25px;"></div>
-    <a href='https://ko-fi.com/D1D6MDDT7' target='_blank'><img height='30' style='border:0px;height:30px;' src='kofi_button_blue.png' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
   </div>
 </div>
 <div class="screen">
@@ -707,22 +705,14 @@
   {
     return __builder =>
     {
-      <div class="div-center">
-        <div style="visibility:hidden">
-          <img width='40' style='border:0px;width:40px;' src='kofi_s_logo_nolabel.png' border='0' alt='Buy Me a Coffee at ko-fi.com' />
+      <div class="div-center div-center-vertical">
+        <div class="session-id-row" @onclick="CopyUrlToClipboardAsync">
+          @foreach (Char c in SessionId)
+          {
+            <div class="guess-tile guess-tile-session-id guess-absent">@c</div>
+          }
         </div>
-        <div class="div-center div-center-vertical">
-          <div class="session-id-row" @onclick="CopyUrlToClipboardAsync">
-            @foreach (Char c in SessionId)
-            {
-              <div class="guess-tile guess-tile-session-id guess-absent">@c</div>
-            }
-          </div>
-          <div class="copy-id"><span>Click ID Above to Copy URL</span><span>@copyIdMessage</span></div>
-        </div>
-        <div>
-          <a href='https://ko-fi.com/D1D6MDDT7' target='_blank'><img width='40' style='border:0px;width:40px;' src='kofi_s_logo_nolabel.png' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-        </div>
+        <div class="copy-id"><span>Click ID Above to Copy URL</span><span>@copyIdMessage</span></div>
       </div>
     };
   }

@@ -25,10 +25,9 @@
   <div>
     With much love from San Francisco & Seattle
   </div>
-  <a href="https://github.com/magicsgram/wordleoff">https://github.com/magicsgram/wordleoff</a>
-  <div style="height: 25px;"></div>
-  <a href='https://ko-fi.com/D1D6MDDT7' target='_blank'><img height='30' style='border:0px;height:30px;' src='kofi_button_blue.png' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
-
+  <div>
+    PUBLIC ANNOUNCEMENT. WORDLEOFF "MAY" GO OFFLINE. SEE README AT <a href="https://github.com/magicsgram/wordleoff">https://github.com/magicsgram/wordleoff</a>
+  </div>
 </div>
 
 @code {
@@ -58,7 +57,7 @@
       .AddMessagePackProtocol()
       .Build();
     hubConnection.Closed += async (e) => await OnClosed(e);
-    
+
     hubConnection.On<String, String>("NewSessionCreated", async (newSessionId, spectatorKey) =>
     {
       await sessionStorage.SetItemAsStringAsync("wordleoff-sessionId-spectatorKey-expiration", $"{newSessionId} {spectatorKey} {DateTime.Now.AddSeconds(10).ToBinary().ToString()}");
@@ -118,7 +117,7 @@
   {
     if (sessionIdPart1.Length == 3 && sessionIdPart2.Length == 3 && sessionIdPart3.Length == 3)
       NavigationManager.NavigateTo($"game/{sessionIdPart1}-{sessionIdPart2}-{sessionIdPart3}");
-  } 
+  }
 
   public async ValueTask DisposeAsync()
   {
