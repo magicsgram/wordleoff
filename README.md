@@ -2,7 +2,7 @@
 
 ***I haven't spoken about this publicly, but Wordleoff still has thousands of daily players worldwide (especially you high schoolers!). At its peak, concurrent players reached around 1,500. As of March 8, 2024, 1,899,848 players have played a total of 3,858,296 rounds across 926,165 sessions. That's a combined playtime of 1,464,522,427 seconds, or roughly 46.44 years!***
 
-***A big thank you to all the players who've kept Wordleoff going strong! I've kept the game ad-free and shouldered the server costs myself. I intend to for as long as possible or the game ceases to exist.***
+***A big thank you to all the players who've kept Wordleoff going strong! I've kept the game ad-free and shouldered the server costs myself. I intend to for as long as possible or until the game ceases to exist.***
 
 ***Have a GREAT day!***
 
@@ -10,9 +10,7 @@
 
 ***Kyle***
 
-
-**PS. Back in 2010, I wrote my first academic paper on "WORDLE," which wasn't a game at that time but a word cloud visualization tool. https://ieeexplore.ieee.org/abstract/document/5613458?casa_token=EpHPAw7AWHAAAAAA:vHJiK00QqeWgLwNbJDKfjVgQrrOntWeq61StjMxZ-d-uNvjEWSV06e5Igeo_GVTcoI9pdinV2Q **
-**I was thrilled to see the word resurface in pop culture, but the New York Times now owns the trademark, making it their intellectual property. This is a sad day for the community.**
+**PS. Back in 2010, I wrote my first academic paper on "WORDLE," which wasn't a game at that time but a word cloud visualization tool. I was thrilled to see the word resurface in pop culture, but the New York Times now owns the trademark, making it their intellectual property. This is a sad day for me and the community. https://ieeexplore.ieee.org/abstract/document/5613458?casa_token=EpHPAw7AWHAAAAAA:vHJiK00QqeWgLwNbJDKfjVgQrrOntWeq61StjMxZ-d-uNvjEWSV06e5Igeo_GVTcoI9pdinV2Q**
 
 ***
 **This project will be completely free of ads and open source as long as I can maintain it. Please note that it's running on limited resources, so if you encounter any service interruptions, simply refresh the page or try again later. Thank you for your understanding!**
