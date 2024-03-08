@@ -1,4 +1,4 @@
-***New York Times Starts Sending DMCA Takedowns to Wordle Clones https://www.theverge.com/2024/3/8/24094234/ny-times-wordle-clones-files-dmca-copyright-takedowns-knockoffs. I haven't received one yet, but if they target Wordleoff, it might have to go offline.***
+***New York Times began sending DMCA Takedowns to Wordle clones https://www.theverge.com/2024/3/8/24094234/ny-times-wordle-clones-files-dmca-copyright-takedowns-knockoffs. I haven't received one yet, but if they target Wordleoff, it might have to go offline.***
 
 ***I haven't spoken about this publicly, but Wordleoff still has thousands of daily players worldwide (especially you high schoolers!). At its peak, concurrent players reached around 1,500. As of March 8, 2024, 1,899,848 players have played a total of 3,858,296 rounds across 926,165 sessions. That's a combined playtime of 1,464,522,427 seconds, or roughly 46.44 years!***
 
